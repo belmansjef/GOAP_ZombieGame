@@ -3,6 +3,7 @@ Research done on GOAP (Goal Oriented Action Planning) applied to a zombie game d
 
 ## SOURCES ##
 Websites:
+
 https://alumni.media.mit.edu/~jorkin/goap.html
 https://jaredemitchell.com/goal-oriented-action-planning-research/
 https://medium.com/@vedantchaudhari/goal-oriented-action-planning-34035ed40d0b
