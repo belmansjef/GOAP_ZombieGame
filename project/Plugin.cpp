@@ -2,7 +2,12 @@
 #include "Plugin.h"
 #include "IExamInterface.h"
 
+#include "GOAP/Action.h"
+#include "GOAP/Planner.h"
+#include "GOAP/WorldState.h"
+
 using namespace std;
+using namespace GOAP;
 
 //Called only once, during initialization
 void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
@@ -13,16 +18,71 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 
 	//Bit information about the plugin
 	//Please fill this in!!
-	info.BotName = "MinionExam";
-	info.Student_FirstName = "Foo";
-	info.Student_LastName = "Bar";
-	info.Student_Class = "2DAEx";
+	info.BotName = "Research_GOAP";
+	info.Student_FirstName = "Jef";
+	info.Student_LastName = "Belmans";
+	info.Student_Class = "2DAE15N";
 }
 
 //Called only once
 void Plugin::DllInit()
 {
 	//Called when the plugin is loaded
+	std::cout << "Wargame example running...\n";
+	std::vector<Action> actions;
+
+	// Constants for the various states are helpful to keep us from
+	// accidentally mistyping a state name.
+	const int med_aquired = 10;
+	const int health_low = 15;
+	const int med_in_inventory = 20;
+	const int med_in_range = 25;
+
+	// Now establish all the possible actions for the action pool
+	// In this example we're providing the AI some different FPS actions
+	Action heal("heal", 5);
+	heal.SetPrecondition(med_in_inventory, true);
+	heal.SetPrecondition(health_low, true);
+	heal.SetEffect(health_low, false);
+	actions.push_back(heal);
+
+	Action grab_med("grabMed", 5);
+	grab_med.SetPrecondition(med_aquired, true);
+	grab_med.SetPrecondition(med_in_inventory, false);
+	grab_med.SetEffect(med_in_inventory, true);
+	actions.push_back(grab_med);
+
+	Action move_to_med("moveToMed", 25);
+	move_to_med.SetPrecondition(med_aquired, true);
+	move_to_med.SetPrecondition(med_in_range, false);
+	move_to_med.SetEffect(med_in_range, true);
+	actions.push_back(move_to_med);
+
+	// Here's the initial state...
+	WorldState initial_state;
+	initial_state.SetVariable(med_aquired, true);
+	initial_state.SetVariable(health_low, true);
+	initial_state.SetVariable(med_in_inventory, false);
+	initial_state.SetVariable(med_in_range, false);
+
+	// ...and the goal state
+	WorldState goal_target_dead;
+	goal_target_dead.SetVariable(health_low, false);
+	goal_target_dead.priority = 50;
+
+	// Fire up the A* planner
+	Planner as;
+	try
+	{
+		std::vector<Action> the_plan = as.FormulatePlan(initial_state, goal_target_dead, actions);
+		std::cout << "Found a path!\n";
+		for (std::vector<Action>::reverse_iterator rit = the_plan.rbegin(); rit != the_plan.rend(); ++rit)
+		{
+			std::cout << rit->GetName() << std::endl;
+		}
+	} catch (const std::exception&) {
+		std::cout << "Sorry, could not find a path!\n";
+	}
 }
 
 //Called only once
