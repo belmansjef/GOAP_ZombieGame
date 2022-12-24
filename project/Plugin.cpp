@@ -2,12 +2,7 @@
 #include "Plugin.h"
 #include "IExamInterface.h"
 
-#include "GOAP/Action.h"
-#include "GOAP/Planner.h"
-#include "GOAP/WorldState.h"
-
 using namespace std;
-using namespace GOAP;
 
 //Called only once, during initialization
 void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
@@ -28,59 +23,172 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 void Plugin::DllInit()
 {
 	//Called when the plugin is loaded
-	std::cout << "Wargame example running...\n";
-	std::vector<Action> actions;
+	std::cout << "Zombie example running...\n";
 
 	// Constants for the various states are helpful to keep us from
 	// accidentally mistyping a state name.
-	const int med_aquired = 10;
-	const int health_low = 15;
-	const int med_in_inventory = 20;
-	const int med_in_range = 25;
+	const int house_aquired = 0;
+	const int house_in_range = 5;
+	const int moving_to_house = 10;
+	const int item_aquired = 15;
+	const int item_in_range = 20;
+	const int item_inventory_full = 25;
 
 	// Now establish all the possible actions for the action pool
 	// In this example we're providing the AI some different FPS actions
-	Action heal("heal", 5);
-	heal.SetPrecondition(med_in_inventory, true);
-	heal.SetPrecondition(health_low, true);
-	heal.SetEffect(health_low, false);
-	actions.push_back(heal);
+	auto search_house_func = [&](IExamInterface* pInterface, SteeringPlugin_Output& steering)
+	{
+		float m_WanderAngle{};
+		m_WanderAngle += Elite::randomFloat(-45.f, 45.f);
+		const Elite::Vector2 circle_center = pInterface->Agent_GetInfo().Position + (pInterface->Agent_GetInfo().LinearVelocity.GetNormalized() * 5.f);
+		const Elite::Vector2 desired_location = pInterface->NavMesh_GetClosestPathPoint({ cosf(m_WanderAngle) * 10.f + circle_center.x, sinf(m_WanderAngle) * 10.f + circle_center.y });
+		
+		steering.LinearVelocity = desired_location - pInterface->Agent_GetInfo().Position;
+		steering.LinearVelocity.Normalize();
+		steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
 
-	Action grab_med("grabMed", 5);
-	grab_med.SetPrecondition(med_aquired, true);
-	grab_med.SetPrecondition(med_in_inventory, false);
-	grab_med.SetEffect(med_in_inventory, true);
-	actions.push_back(grab_med);
+		HouseInfo hi = {};
+		for (int i = 0;; ++i)
+		{
+			if (m_pInterface->Fov_GetHouseByIndex(i, hi))
+			{
+				if (hi.Center != m_HousePos)
+				{
+					m_HousePos = hi.Center;
+					return true;
+				}
+			}
 
-	Action move_to_med("moveToMed", 25);
-	move_to_med.SetPrecondition(med_aquired, true);
-	move_to_med.SetPrecondition(med_in_range, false);
-	move_to_med.SetEffect(med_in_range, true);
-	actions.push_back(move_to_med);
+			break;
+		}
+
+		return false;
+	};
+	GOAP::Action search_house("SearchForHouse", 5, search_house_func);
+	search_house.SetPrecondition(house_aquired, false);
+	search_house.SetPrecondition(moving_to_house, false);
+	search_house.SetEffect(house_aquired, true);
+	m_Actions.push_back(search_house);
+
+	auto move_to_house_func = [&](IExamInterface* pInterface, SteeringPlugin_Output& steering)
+	{
+		const float EPSILON{ 1.f };
+		const Elite::Vector2 desired_location = pInterface->NavMesh_GetClosestPathPoint(m_HousePos);
+		steering.LinearVelocity = desired_location - pInterface->Agent_GetInfo().Position;
+		steering.LinearVelocity.Normalize();
+		steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
+
+		return pInterface->Agent_GetInfo().Position.DistanceSquared(m_HousePos) < EPSILON;
+	};
+	GOAP::Action move_to_house("MoveToHouse", 10, move_to_house_func);
+	move_to_house.SetPrecondition(house_aquired, true);
+	move_to_house.SetPrecondition(moving_to_house, false);
+	move_to_house.SetPrecondition(house_in_range, false);
+	move_to_house.SetEffect(house_in_range, true);
+	m_Actions.push_back(move_to_house);
+
+	auto search_item_func = [&](IExamInterface* pInterface, SteeringPlugin_Output& steering)
+	{
+		float m_WanderAngle{};
+		m_WanderAngle += Elite::randomFloat(-45.f, 45.f);
+		const Elite::Vector2 circle_center = pInterface->Agent_GetInfo().Position + (pInterface->Agent_GetInfo().LinearVelocity.GetNormalized() * 5.f);
+		const Elite::Vector2 desired_location = pInterface->NavMesh_GetClosestPathPoint({ cosf(m_WanderAngle) * 10.f + circle_center.x, sinf(m_WanderAngle) * 10.f + circle_center.y });
+
+		steering.LinearVelocity = desired_location - pInterface->Agent_GetInfo().Position;
+		steering.LinearVelocity.Normalize();
+		steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
+
+		EntityInfo ei = {};
+
+		for (int i = 0;; ++i)
+		{
+			if (m_pInterface->Fov_GetEntityByIndex(i, ei))
+			{
+				ItemInfo item;
+				if (pInterface->Item_GetInfo(ei, item))
+				{
+					m_ItemsInView.push_back(item);
+				}
+				continue;
+			}
+
+			break;
+		}
+
+		return !m_ItemsInView.empty();
+	};
+	GOAP::Action search_item("SearchItem", 5, search_item_func);
+	search_item.SetPrecondition(house_in_range, true);
+	search_item.SetPrecondition(item_in_range, false);
+	search_item.SetPrecondition(item_inventory_full, false);
+	search_item.SetEffect(item_aquired, true);
+	m_Actions.push_back(search_item);
+
+	auto move_to_item_func = [&](IExamInterface* pInterface, SteeringPlugin_Output& steering)
+	{
+		const float EPSILON{ pInterface->Agent_GetInfo().GrabRange * pInterface->Agent_GetInfo().GrabRange };
+		const Elite::Vector2 desired_location = pInterface->NavMesh_GetClosestPathPoint(m_ItemsInView.back().Location);
+
+		steering.LinearVelocity = desired_location - pInterface->Agent_GetInfo().Position;
+		steering.LinearVelocity.Normalize();
+		steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
+
+		return pInterface->Agent_GetInfo().Position.DistanceSquared(m_ItemsInView.back().Location) < EPSILON;
+	};
+	GOAP::Action move_to_item("MoveToItem", 5, move_to_item_func);
+	move_to_item.SetPrecondition(item_aquired, true);
+	move_to_item.SetPrecondition(item_in_range, false);
+	move_to_item.SetPrecondition(item_inventory_full, false);
+	move_to_item.SetEffect(item_in_range, true);
+	m_Actions.push_back(move_to_item);
+
+	auto grab_item_func = [&](IExamInterface* pInterface, SteeringPlugin_Output& steering)
+	{
+		if (m_pInterface->Item_Grab({}, m_ItemsInView.back()))
+		{
+			if (m_pInterface->Inventory_AddItem(m_ItemsInInventory++, m_ItemsInView.back()))
+			{
+				m_ItemsInView.pop_back();
+				m_ItemsInInventory++;
+				return true;
+			}
+		}
+
+		return false;
+	};
+	GOAP::Action grab_item("GrabItem", 5, grab_item_func);
+	grab_item.SetPrecondition(item_in_range, true);
+	grab_item.SetPrecondition(item_inventory_full, false);
+	grab_item.SetEffect(item_in_range, false);
+	grab_item.SetEffect(item_inventory_full, true);
+	m_Actions.push_back(grab_item);
 
 	// Here's the initial state...
-	WorldState initial_state;
-	initial_state.SetVariable(med_aquired, true);
-	initial_state.SetVariable(health_low, true);
-	initial_state.SetVariable(med_in_inventory, false);
-	initial_state.SetVariable(med_in_range, false);
+	m_WorldState.SetVariable(house_aquired, false);
+	m_WorldState.SetVariable(moving_to_house, false);
+	m_WorldState.SetVariable(house_in_range, false);
+	m_WorldState.SetVariable(item_aquired, false);
+	m_WorldState.SetVariable(item_in_range, false);
+	m_WorldState.SetVariable(item_inventory_full, false);
 
 	// ...and the goal state
-	WorldState goal_target_dead;
-	goal_target_dead.SetVariable(health_low, false);
-	goal_target_dead.priority = 50;
+	GOAP::WorldState goal_house_aquired;
+	goal_house_aquired.SetVariable(item_inventory_full, true);
+	goal_house_aquired.priority = 50;
 
 	// Fire up the A* planner
-	Planner as;
+	auto steering = SteeringPlugin_Output();
 	try
 	{
-		std::vector<Action> the_plan = as.FormulatePlan(initial_state, goal_target_dead, actions);
+		m_Plan = m_ASPlanner.FormulatePlan(m_WorldState, goal_house_aquired, m_Actions);
 		std::cout << "Found a path!\n";
-		for (std::vector<Action>::reverse_iterator rit = the_plan.rbegin(); rit != the_plan.rend(); ++rit)
+		for (std::vector<GOAP::Action>::reverse_iterator rit = rbegin(m_Plan); rit != rend(m_Plan); ++rit)
 		{
 			std::cout << rit->GetName() << std::endl;
 		}
-	} catch (const std::exception&) {
+	} 
+	catch (const std::exception&) 
+	{
 		std::cout << "Sorry, could not find a path!\n";
 	}
 }
@@ -180,9 +288,17 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 {
 	auto steering = SteeringPlugin_Output();
 	
+	if (!m_Plan.empty())
+	{
+		auto& currentAction = m_Plan.back();
+		if (currentAction.Execute(m_WorldState, m_pInterface, steering))
+		{
+			m_Plan.pop_back();
+		}
+	}
+
 	//Use the Interface (IAssignmentInterface) to 'interface' with the AI_Framework
 	auto agentInfo = m_pInterface->Agent_GetInfo();
-
 
 	//Use the navmesh to calculate the next navmesh point
 	//auto nextTargetPos = m_pInterface->NavMesh_GetClosestPathPoint(checkpointLocation);
@@ -234,14 +350,14 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 	}
 
 	//Simple Seek Behaviour (towards Target)
-	steering.LinearVelocity = nextTargetPos - agentInfo.Position; //Desired Velocity
-	steering.LinearVelocity.Normalize(); //Normalize Desired Velocity
-	steering.LinearVelocity *= agentInfo.MaxLinearSpeed; //Rescale to Max Speed
+	//steering.LinearVelocity = nextTargetPos - agentInfo.Position; //Desired Velocity
+	//steering.LinearVelocity.Normalize(); //Normalize Desired Velocity
+	//steering.LinearVelocity *= agentInfo.MaxLinearSpeed; //Rescale to Max Speed
 
-	if (Distance(nextTargetPos, agentInfo.Position) < 2.f)
+	/*if (Distance(nextTargetPos, agentInfo.Position) < 2.f)
 	{
 		steering.LinearVelocity = Elite::ZeroVector2;
-	}
+	}*/
 
 	//steering.AngularVelocity = m_AngSpeed; //Rotate your character to inspect the world while walking
 	steering.AutoOrient = true; //Setting AutoOrient to TRue overrides the AngularVelocity

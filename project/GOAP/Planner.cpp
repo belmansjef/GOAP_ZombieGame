@@ -79,8 +79,8 @@ std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, 
             std::vector<Action> plan;
             do
             {
-                plan.push_back(*current.action);
-
+                plan.emplace_back(*current.action);
+                
                 // Search node on open list
                 auto it = std::find_if(begin(m_OpenList), end(m_OpenList), [&](const Node& n) { return n.id == current.parent_id; });
 
@@ -115,12 +115,13 @@ std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, 
                     // Add it to the open list (maintaining sort-order therein)
                     AddToOpenList(std::move(newNode));
                 }
-                else { // already a member of the open list
+                else
+                {
+                    // already a member of the open list
                     // check if the current G is better than the recorded G
                     if (current.g + potential_action.GetCost() < p_outcome_node->g)
-                    {
-                        //std::cout << "My path to " << p_outcome_node->ws_ << " using " << potential_action.name() << " (combined cost " << current.g_ + potential_action.cost() << ") is better than existing (cost " <<  p_outcome_node->g_ << "\n";
-                        p_outcome_node->parent_id = current.id;                  // make current its parent
+                    {    
+                        p_outcome_node->parent_id = current.id; // make current its parent
                         p_outcome_node->g = current.g + potential_action.GetCost(); // recalc G & H
                         p_outcome_node->h = CalculateHeuristic(outcome, goal);
                         p_outcome_node->action = &potential_action;

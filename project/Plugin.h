@@ -2,10 +2,15 @@
 #include "IExamPlugin.h"
 #include "Exam_HelperStructs.h"
 
+// GOAP includes
+#include "GOAP/WorldState.h"
+#include "GOAP/Action.h"
+#include "GOAP/Planner.h"
+
 class IBaseInterface;
 class IExamInterface;
 
-class Plugin :public IExamPlugin
+class Plugin final : public IExamPlugin
 {
 public:
 	Plugin() {};
@@ -35,6 +40,17 @@ private:
 	float m_AngSpeed = 0.f; //Demo purpose
 
 	UINT m_InventorySlot = 0;
+
+	// GOAP
+	UINT m_ItemsInInventory{ 0 };
+
+	bool m_HasPlan{ false };
+	GOAP::WorldState m_WorldState;
+	std::vector<GOAP::Action> m_Plan;
+	std::vector<GOAP::Action> m_Actions;
+	GOAP::Planner m_ASPlanner;
+	Elite::Vector2 m_HousePos;
+	std::vector<ItemInfo> m_ItemsInView;
 };
 
 //ENTRY
