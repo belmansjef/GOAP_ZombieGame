@@ -4,19 +4,19 @@
     <ClCompile Include="Plugin.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="GOAP\WorldState.cpp" />
-    <ClCompile Include="GOAP\Action.cpp" />
+    <ClCompile Include="GOAP\BaseAction.cpp" />
     <ClCompile Include="GOAP\Node.cpp" />
     <ClCompile Include="GOAP\Planner.cpp" />
-    <ClCompile Include="GOAP\Actions\Action_MoveTo.cpp" />
+    <ClCompile Include="GOAP\Actions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Plugin.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="GOAP\WorldState.h" />
-    <ClInclude Include="GOAP\Action.h" />
+    <ClInclude Include="GOAP\BaseAction.h" />
     <ClInclude Include="GOAP\Node.h" />
     <ClInclude Include="GOAP\Planner.h" />
     <ClInclude Include="GOAP\Data\EBlackboard.h" />
-    <ClInclude Include="GOAP\Actions\Action_MoveTo.h" />
+    <ClInclude Include="GOAP\Actions.h" />
   </ItemGroup>
 </Project>

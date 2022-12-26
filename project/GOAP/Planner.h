@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Action.h"
+#include "BaseAction.h"
 #include "Node.h"
 #include "WorldState.h"
 
@@ -19,7 +19,7 @@ namespace GOAP
 		void PrintOpenList() const;
 		void PrintClosedList() const;
 
-		std::vector<GOAP::Action> FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<Action>& actions);
+		std::vector<GOAP::BaseAction*> FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<BaseAction*>& actions);
 
 	private:
 		std::vector<Node> m_OpenList{}; // A* open list

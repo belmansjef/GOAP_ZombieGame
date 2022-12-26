@@ -181,9 +181,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="GOAP\Actions\Action_MoveTo.h" />
+    <ClInclude Include="GOAP\Actions.h" />
     <ClInclude Include="GOAP\Data\EBlackboard.h" />
-    <ClInclude Include="GOAP\Action.h" />
+    <ClInclude Include="GOAP\BaseAction.h" />
     <ClInclude Include="GOAP\Node.h" />
     <ClInclude Include="GOAP\Planner.h" />
     <ClInclude Include="Plugin.h" />
@@ -191,8 +191,11 @@
     <ClInclude Include="GOAP\WorldState.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GOAP\Actions\Action_MoveTo.cpp" />
-    <ClCompile Include="GOAP\Action.cpp">
+    <ClCompile Include="GOAP\Actions.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="GOAP\BaseAction.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../stdafx.h</PrecompiledHeaderFile>

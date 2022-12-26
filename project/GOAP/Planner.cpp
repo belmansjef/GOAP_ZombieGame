@@ -52,11 +52,12 @@ void GOAP::Planner::PrintClosedList() const
     }
 }
 
-std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<Action>& actions)
+std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<BaseAction*>& actions)
 {
     if (start.MeetsGoal(goal))
     {
-        return std::vector<Action>();
+        std::cout << "Goal already meets current WorldState!" << std::endl;
+        return std::vector<BaseAction*>();
     }
 
     // Feasible we'd re-use a planner, so clear out the prior results
@@ -64,7 +65,6 @@ std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, 
     m_ClosedList.clear();
 
     Node starting_node{ start, 0, CalculateHeuristic(start, goal), 0, nullptr};
-
     m_OpenList.push_back(std::move(starting_node));
 
     while (m_OpenList.size() > 0)
@@ -76,10 +76,10 @@ std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, 
         // Is our current state the goal state? If so, we've found a path, yay.
         if (current.ws.MeetsGoal(goal))
         {
-            std::vector<Action> plan;
+            std::vector<BaseAction*> plan;
             do
             {
-                plan.emplace_back(*current.action);
+                plan.emplace_back(current.action);
                 
                 // Search node on open list
                 auto it = std::find_if(begin(m_OpenList), end(m_OpenList), [&](const Node& n) { return n.id == current.parent_id; });
@@ -96,11 +96,11 @@ std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, 
         }
 
         // Check each node REACHABLE from current -- in other words, where can we go from here?
-        for (const auto& potential_action : actions)
+        for (const auto potential_action : actions)
         {
-            if (potential_action.OperableOn(current.ws))
+            if (potential_action->OperableOn(current.ws))
             {
-                WorldState outcome = potential_action.ActOn(current.ws);
+                WorldState outcome = potential_action->ActOn(current.ws);
 
                 // Skip if already closed
                 if (IsMemberOfClosed(outcome)) continue;
@@ -111,7 +111,7 @@ std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, 
                 { 
                     // not a member of open list
                     // Make a new node, with current as its parent, recording G & H
-                    Node newNode(outcome, current.g + potential_action.GetCost(), CalculateHeuristic(outcome, goal), current.id, &potential_action);
+                    Node newNode(outcome, current.g + potential_action->GetCost(), CalculateHeuristic(outcome, goal), current.id, potential_action);
                     // Add it to the open list (maintaining sort-order therein)
                     AddToOpenList(std::move(newNode));
                 }
@@ -119,12 +119,12 @@ std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, 
                 {
                     // already a member of the open list
                     // check if the current G is better than the recorded G
-                    if (current.g + potential_action.GetCost() < p_outcome_node->g)
+                    if (current.g + potential_action->GetCost() < p_outcome_node->g)
                     {    
                         p_outcome_node->parent_id = current.id; // make current its parent
-                        p_outcome_node->g = current.g + potential_action.GetCost(); // recalc G & H
+                        p_outcome_node->g = current.g + potential_action->GetCost(); // recalc G & H
                         p_outcome_node->h = CalculateHeuristic(outcome, goal);
-                        p_outcome_node->action = &potential_action;
+                        p_outcome_node->action = potential_action;
 
                         // resort open list to account for the new F
                         // sorting likely invalidates the p_outcome_node iterator, but we don't need it anymore

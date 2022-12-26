@@ -10,11 +10,12 @@ namespace GOAP
 {
 	struct WorldState;
 
-	class Action
+	class BaseAction
 	{
 	public:
-		Action(const std::string& _name, const int _cost);
-		virtual ~Action() = default;
+		BaseAction() = default;
+		BaseAction(const std::string& _name, const int _cost);
+		virtual ~BaseAction();
 
 		/// <summary>
 		/// Can this action operate on the given WorldState?
@@ -22,7 +23,7 @@ namespace GOAP
 		/// </summary>
 		/// <param name="ws">The WorldState to check if this action can operate on,</param>
 		/// <returns>True if the action can operate on the WorldState, false otherwise,</returns>
-		bool OperableOn(Elite::Blackboard* pBlackboard) const;
+		bool OperableOn(const WorldState& ws) const;
 
 		/// <summary>
 		/// Act on the given WorldState.
@@ -30,15 +31,14 @@ namespace GOAP
 		/// </summary>
 		/// <param name="ws">The WorldState to act on.</param>
 		/// <returns>A copy of the supplied WorldState, with the effects applied.</returns>
-		WorldState ActOn(Elite::Blackboard* pBlackboard) const;
+		WorldState ActOn(const WorldState& ws) const;
 
-		virtual bool IsValid(Elite::Blackboard* pBlackboard) { return true; }
-		virtual bool Execute(Elite::Blackboard* pBlackboard) { return true; }
+		virtual bool IsValid(Elite::Blackboard* m_pBlackboard) { return true; }
+		virtual bool Execute(Elite::Blackboard* m_pBlackboard) { return true; }
 
-		void SetPrecondition(const int key, const bool value) { m_Preconditions[key] = value; }
-		void SetEffect(const int key, const bool value) { m_Effects[key] = value; }
-
-		void SetActionTimeout(float timeout){ m_ActionTimeout = timeout; }
+		virtual void SetPrecondition(const std::string& key, const bool value) { m_Preconditions[key] = value; }
+		virtual void SetEffect(const std::string& key, const bool value) { m_Effects[key] = value; }
+		virtual void SetActionTimeout(float timeout){ m_ActionTimeout = timeout; }
 
 		virtual int GetCost() const { return m_Cost; }
 		std::string GetName() const { return m_Name; }
@@ -55,11 +55,11 @@ namespace GOAP
 
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.
-		std::unordered_map<int, bool> m_Preconditions;
+		std::unordered_map<std::string, bool> m_Preconditions;
 
 		// Effects are the result of this action being taken.
 		// They most likely change certain vars in the current WorldState.
-		std::unordered_map<int, bool> m_Effects;
+		std::unordered_map<std::string, bool> m_Effects;
 
 		float m_ActionTimeout;
 		float m_ActionTimer;

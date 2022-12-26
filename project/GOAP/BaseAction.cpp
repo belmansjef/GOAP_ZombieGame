@@ -1,20 +1,25 @@
-#include "Action.h"
+#include "BaseAction.h"
 #include "WorldState.h"
 
 #include <iostream>
 
-GOAP::Action::Action(const std::string& _name, const int _cost)
+
+GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost)
     : m_Name(_name)
     , m_Cost(_cost)
-    , m_ActionTimeout(10.f)
+    , m_Target(Elite::Vector2{})
+    , m_AgentInfo(AgentInfo{})
+    , m_ActionTimeout(20.f)
     , m_ActionTimer(0.f)
 {
 }
 
-bool GOAP::Action::OperableOn(Elite::Blackboard* pBlackboard) const
+GOAP::BaseAction::~BaseAction()
 {
-    GOAP::WorldState ws{};
-    if (!pBlackboard->GetData("WorldState", ws)) return false;
+}
+
+bool GOAP::BaseAction::OperableOn(const WorldState& ws) const
+{
     for (const auto& preconditions : m_Preconditions)
     {
         try
@@ -32,11 +37,9 @@ bool GOAP::Action::OperableOn(Elite::Blackboard* pBlackboard) const
     return true;
 }
 
-GOAP::WorldState GOAP::Action::ActOn(Elite::Blackboard* pBlackboard) const
+GOAP::WorldState GOAP::BaseAction::ActOn(const WorldState& ws) const
 {
-    GOAP::WorldState tmp{};
-    if (!pBlackboard->GetData("WorldState", tmp)) return tmp;
-    
+    GOAP::WorldState tmp{ ws };
     for (const auto& effect : m_Effects)
     {
         tmp.SetVariable(effect.first, effect.second);

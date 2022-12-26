@@ -4,15 +4,17 @@
 #include <map>
 #include <functional>
 
+#include "Data/EBlackboard.h"
+
 namespace GOAP
 {
-	struct WorldState final
+	struct WorldState
 	{
 	public:
-		WorldState(const std::string& _name = "");
+		WorldState(const std::string& _name = "", int _priority = 100);
 
-		void SetVariable(const int var_id, const bool value);
-		bool GetVariable(const int var_id) const;
+		void SetVariable(const std::string& var_id, const bool value);
+		bool GetVariable(const std::string& var_id) const;
 
 		/// <summary>
 		/// Does the passed WorldState meet the requirements of this WorldState?
@@ -29,13 +31,16 @@ namespace GOAP
 		/// <returns>The number of state var difference between us and them</returns>
 		int DistanceTo(const WorldState& goal_state) const;
 
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const { return true; }
+
 		bool operator==(const WorldState& other) const;
+		bool operator!=(const WorldState& other) const;
 
 		friend std::ostream& operator<<(std::ostream& out, const WorldState& ws);
 
-		float priority; // Used if this is a goal state, the highest priorty goal will be used
+		int priority; // Used if this is a goal state, the highest priorty goal will be used
 		std::string name; // Human name of the state
-		std::map<int, bool> vars; // Describes the world state and it's paramaters
+		std::map<std::string, bool> vars; // Describes the world state and it's paramaters
 	};
 
 	inline std::ostream& operator<<(std::ostream& out, const WorldState& ws)
@@ -48,4 +53,24 @@ namespace GOAP
 		out << "}";
 		return out;
 	}
+
+	struct Goal_Wander final : WorldState
+	{
+	public:
+		Goal_Wander() : WorldState("Wander", 0)
+		{
+			SetVariable("wandering", true);
+		};
+	};
+
+	struct Goal_MoveToPistol final : WorldState
+	{
+	public:
+		Goal_MoveToPistol() : WorldState("Move To Pistol", 100)
+		{
+			SetVariable("target_in_range", true);
+		}
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
 }

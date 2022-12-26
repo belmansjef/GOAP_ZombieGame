@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "Action.h"
+#include "BaseAction.h"
 #include "WorldState.h"
 
 namespace GOAP
@@ -16,9 +16,9 @@ namespace GOAP
 		int parent_id;		// The ID of this node's predecessor
 		int g;				// The cost from 'start' to 'here', used by A*
 		int h;				// The heuristic, estimated remaining cost from 'here' to 'goal', used by A*
-		const Action* action;	// The action that got us here
+		BaseAction* action;	    // The action that got us here
 
-		Node(const WorldState& _ws, const int _g, const int _h, const int _parent_id, const Action* _action);
+		Node(const WorldState& _ws, const int _g, const int _h, const int _parent_id, BaseAction* _action);
 
 		/// <summary>
 		/// The full cost (g + h) of the A* path

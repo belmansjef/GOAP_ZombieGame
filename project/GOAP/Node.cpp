@@ -3,7 +3,7 @@
 
 int GOAP::Node::last_id = 0;
 
-GOAP::Node::Node(const WorldState& _ws, const int _g, const int _h, int _parent_id, const Action* _action)
+GOAP::Node::Node(const WorldState& _ws, const int _g, const int _h, int _parent_id, BaseAction* _action)
     : ws(_ws)
     , g(_g)
     , h(_h)
