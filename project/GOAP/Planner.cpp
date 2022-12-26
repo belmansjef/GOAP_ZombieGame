@@ -52,7 +52,7 @@ void GOAP::Planner::PrintClosedList() const
     }
 }
 
-std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, const WorldState& goal, const std::vector<Action>& actions)
+std::vector<GOAP::Action> GOAP::Planner::FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<Action>& actions)
 {
     if (start.MeetsGoal(goal))
     {

@@ -39,18 +39,62 @@ private:
 	bool m_RemoveItem = false; //Demo purpose
 	float m_AngSpeed = 0.f; //Demo purpose
 
+	// World Info
 	UINT m_InventorySlot = 0;
+	UINT m_ItemsInInventory = 0;
+
+	std::vector<HouseInfo_Extended> m_AquiredHouses;
+	
+	// In current FOV
+	std::vector<EntityInfo> m_EntitiesInFov;
+	std::vector<ItemInfo> m_ItemsInFov;
+	PurgeZoneInfo m_PurgeZoneInFov;
+
+
+	std::vector<EntityInfo> m_AquiredPistols;
+
+	float m_FrameTime = 0.f;
+
+	// States
+	// Constants for the various states are helpful to keep us from
+	// accidentally mistyping a state name.
+	const int house_aquired = 0;
+	const int inside_house = 5;
+	const int health_low = 10;
+	const int energy_low = 15;
+	const int stamina_low = 20;
+	const int food_aquired = 25;
+	const int food_in_range = 30;
+	const int pistol_aquired = 35;
+	const int pistol_in_range = 40;
+	const int pistol_in_inventory = 45;
+	const int pistol_collected = 50;
+	const int purge_zone_in_range = 55;
 
 	// GOAP
-	UINT m_ItemsInInventory{ 0 };
-
 	bool m_HasPlan{ false };
 	GOAP::WorldState m_WorldState;
 	std::vector<GOAP::Action> m_Plan;
 	std::vector<GOAP::Action> m_Actions;
+	std::vector<GOAP::WorldState> m_Goals;
+	GOAP::Action m_WanderAction;
+	GOAP::WorldState m_CurrentGoal;
 	GOAP::Planner m_ASPlanner;
-	Elite::Vector2 m_HousePos;
-	std::vector<ItemInfo> m_ItemsInView;
+
+	bool FindPlan();
+
+	// Steering
+	float m_WanderAngle{};
+	SteeringPlugin_Output m_Steering;
+	bool Seek(SteeringPlugin_Output& steering, const Elite::Vector2& target, float epsilon);
+	void Wander(SteeringPlugin_Output& steering);
+
+	// Helpers
+	bool CheckForPurgeZone();
+	bool CheckForPistol();
+	template<typename T>
+	void SortEntitiesByDistance(std::vector<T>& entities);
+	void UpdateHouseInfo();
 };
 
 //ENTRY

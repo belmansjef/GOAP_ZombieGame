@@ -4,9 +4,6 @@
 #include <unordered_map>
 #include <functional>
 
-class IExamInterface;
-struct SteeringPlugin_Output;
-
 namespace GOAP
 {
 	struct WorldState;
@@ -15,7 +12,7 @@ namespace GOAP
 	{
 	public:
 		Action();
-		Action(const std::string& _name, const int _cost, std::function<bool(IExamInterface* pInterface, SteeringPlugin_Output&)> _function);
+		Action(const std::string& _name, const int _cost, std::function<bool()> _execFunction);
 
 		/// <summary>
 		/// Can this action operate on the given WorldState?
@@ -33,19 +30,24 @@ namespace GOAP
 		/// <returns>A copy of the supplied WorldState, with the effects applied.</returns>
 		WorldState ActOn(const WorldState& ws) const;
 
-		bool Execute(WorldState& ws, IExamInterface* pInterface, SteeringPlugin_Output& steering);
+		bool Execute(WorldState& ws, float frameTime);
 
 		void SetPrecondition(const int key, const bool value) { m_Preconditions[key] = value; }
 		void SetEffect(const int key, const bool value) { m_Effects[key] = value; }
-		void SetProceduralEffect(const int key, std::function<bool()> func) { m_ProceduralEffect[key] = func; }
 
-		int GetCost() const { return m_Cost; }
+		void SetActionTimeout(float timeout){ m_ActionTimeout = timeout; }
+
+		void SetCostFunction(std::function<int(int)> func) { m_CostFunction = func; }
+
+		int GetCost() const;
 		std::string GetName() const { return m_Name; }
+		bool GetIsDone() const { return m_IsDone; }
 
 	private:
 		bool m_IsRunning{false};
+		bool m_IsDone{false};
 		std::string m_Name;	// Human name of the action
-		int m_Cost;			// The cost of this action
+		int m_Cost;			// The base cost of this action
 
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.
@@ -54,7 +56,10 @@ namespace GOAP
 		// Effects are the result of this action being taken.
 		// They most likely change certain vars in the current WorldState.
 		std::unordered_map<int, bool> m_Effects;
-		std::unordered_map<int, std::function<bool()>> m_ProceduralEffect;
-		std::function<bool(IExamInterface* pInterface, SteeringPlugin_Output&)> m_Exec;
+		std::function<bool()> m_ExecutionFunction;
+		std::function<int(int)> m_CostFunction;
+
+		float m_ActionTimeout;
+		float m_ActionTimer;
 	};
 }

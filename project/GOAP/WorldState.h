@@ -2,15 +2,13 @@
 #include <ostream>
 #include <string>
 #include <map>
+#include <functional>
 
 namespace GOAP
 {
 	struct WorldState final
 	{
-		float priority; // Used if this is a goal state, the highest priorty goal will be used
-		std::string name; // Human name of the state
-		std::map<int, bool> vars; // Describes the world state and it's paramaters
-
+	public:
 		WorldState(const std::string& _name = "");
 
 		void SetVariable(const int var_id, const bool value);
@@ -31,9 +29,17 @@ namespace GOAP
 		/// <returns>The number of state var difference between us and them</returns>
 		int DistanceTo(const WorldState& goal_state) const;
 
+		void SetPriorityCalcFunc(std::function<float(float&)> func) { exec = func; }
+		float UpdatePriority();
+
 		bool operator==(const WorldState& other) const;
 
 		friend std::ostream& operator<<(std::ostream& out, const WorldState& ws);
+
+		float priority; // Used if this is a goal state, the highest priorty goal will be used
+		std::string name; // Human name of the state
+		std::map<int, bool> vars; // Describes the world state and it's paramaters
+		std::function<float(float&)> exec;
 	};
 
 	inline std::ostream& operator<<(std::ostream& out, const WorldState& ws)

@@ -18,7 +18,6 @@ namespace GOAP
 		int h;				// The heuristic, estimated remaining cost from 'here' to 'goal', used by A*
 		const Action* action;	// The action that got us here
 
-		Node();
 		Node(const WorldState& _ws, const int _g, const int _h, const int _parent_id, const Action* _action);
 
 		/// <summary>

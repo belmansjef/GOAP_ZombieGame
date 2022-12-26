@@ -5,13 +5,17 @@
 
 GOAP::Action::Action()
     : m_Cost(0)
+    , m_ActionTimeout(10.f)
+    , m_ActionTimer(0.f)
 {
 }
 
-GOAP::Action::Action(const std::string& _name, const int _cost, std::function<bool(IExamInterface* pInterface, SteeringPlugin_Output&)> _function)
+GOAP::Action::Action(const std::string& _name, const int _cost, std::function<bool()> _execFunction)
     : m_Name(_name)
     , m_Cost(_cost)
-    , m_Exec(_function)
+    , m_ExecutionFunction(_execFunction)
+    , m_ActionTimeout(10.f)
+    , m_ActionTimer(0.f)
 {
 }
 
@@ -41,14 +45,10 @@ GOAP::WorldState GOAP::Action::ActOn(const WorldState& ws) const
     {
         tmp.SetVariable(effect.first, effect.second);
     }
-    for (const auto& effect : m_ProceduralEffect)
-    {
-        tmp.SetVariable(effect.first, effect.second());
-    }
     return tmp;
 }
 
-bool GOAP::Action::Execute(WorldState& ws, IExamInterface* pInterface, SteeringPlugin_Output& steering)
+bool GOAP::Action::Execute(WorldState& ws, float frameTime)
 {
     if (!m_IsRunning)
     {
@@ -56,12 +56,28 @@ bool GOAP::Action::Execute(WorldState& ws, IExamInterface* pInterface, SteeringP
         m_IsRunning = true;
     }
 
-    if (m_Exec(pInterface, steering))
+    if (m_ExecutionFunction())
     {
         std::cout << "Finished executing: " << m_Name << std::endl;
-        ws = ActOn(ws);
-        return true;
+        if (OperableOn(ws))
+        {
+            ws = ActOn(ws);
+            m_IsDone = true;
+            return true;
+        }
+        
+        return false;
     }
-    
-    return false;
+
+    m_ActionTimer += frameTime;
+    return m_ActionTimer < m_ActionTimeout;
+}
+
+int GOAP::Action::GetCost() const
+{
+    if (m_CostFunction)
+    {
+        return m_CostFunction(m_Cost);
+    }
+    return m_Cost;
 }

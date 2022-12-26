@@ -108,8 +108,16 @@ struct StatisticsInfo
 
 struct HouseInfo
 {
-	Elite::Vector2 Center;
+	Elite::Vector2 Location;
 	Elite::Vector2 Size;
+};
+
+struct HouseInfo_Extended : HouseInfo
+{
+	float TimeSinceLastVisit{20.f};
+	float ReactivationTime{20.f};
+	bool  HasRecentlyVisited() const { return TimeSinceLastVisit < ReactivationTime; }
+	bool operator==(const HouseInfo_Extended& rhs) { return Location == rhs.Location; }
 };
 
 struct EnemyInfo

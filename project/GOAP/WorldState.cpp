@@ -56,3 +56,8 @@ int GOAP::WorldState::DistanceTo(const WorldState& goal_state) const
 
     return result;
 }
+
+float GOAP::WorldState::UpdatePriority()
+{
+    return exec(priority);
+}

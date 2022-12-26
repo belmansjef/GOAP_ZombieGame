@@ -19,7 +19,7 @@ namespace GOAP
 		void PrintOpenList() const;
 		void PrintClosedList() const;
 
-		std::vector<GOAP::Action> FormulatePlan(const WorldState& start, const WorldState& goal, const std::vector<Action>& actions);
+		std::vector<GOAP::Action> FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<Action>& actions);
 
 	private:
 		std::vector<Node> m_OpenList{}; // A* open list
