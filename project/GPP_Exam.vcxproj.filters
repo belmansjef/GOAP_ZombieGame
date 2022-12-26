@@ -7,6 +7,7 @@
     <ClCompile Include="GOAP\Action.cpp" />
     <ClCompile Include="GOAP\Node.cpp" />
     <ClCompile Include="GOAP\Planner.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_MoveTo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Plugin.h" />
@@ -15,5 +16,7 @@
     <ClInclude Include="GOAP\Action.h" />
     <ClInclude Include="GOAP\Node.h" />
     <ClInclude Include="GOAP\Planner.h" />
+    <ClInclude Include="GOAP\Data\EBlackboard.h" />
+    <ClInclude Include="GOAP\Actions\Action_MoveTo.h" />
   </ItemGroup>
 </Project>

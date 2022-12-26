@@ -53,13 +53,13 @@ void Plugin::DllInit()
 	};
 	GOAP::Action search_house("Search For House", 5, search_house_func);
 	search_house.SetPrecondition(house_aquired, false);
-	search_house.SetPrecondition(inside_house, false);
 	search_house.SetEffect(house_aquired, true);
+	search_house.SetEffect(inside_house, false);
 	m_Actions.push_back(search_house);
 
 	auto move_to_house_func = [&]()
 	{
-		auto it = std::find_if(begin(m_AquiredHouses), end(m_AquiredHouses), [&](const HouseInfo_Extended& house)
+		auto& it = std::find_if(begin(m_AquiredHouses), end(m_AquiredHouses), [&](const HouseInfo_Extended& house)
 			{
 				return !house.HasRecentlyVisited();
 			});
@@ -86,21 +86,21 @@ void Plugin::DllInit()
 		return cost;
 	};
 	GOAP::Action move_to_house("Move To House", 50, move_to_house_func);
-	move_to_house.SetCostFunction(move_to_house_costfunc);
 	move_to_house.SetPrecondition(house_aquired, true);
-	move_to_house.SetPrecondition(inside_house, false);
 	move_to_house.SetEffect(inside_house, true);
 	m_Actions.push_back(move_to_house);
 
 	auto search_pistol_func = [&]()
 	{
 		m_Steering.AutoOrient = false;
+		m_Steering.LinearVelocity = Elite::ZeroVector2;
 		m_Steering.AngularVelocity = 45.f;
 
 		return CheckForPistol();
 	};
 	GOAP::Action search_pistol("Search For Pistol", 5, search_pistol_func);
 	search_pistol.SetPrecondition(inside_house, true);
+	search_pistol.SetPrecondition(house_aquired, true);
 	search_pistol.SetPrecondition(pistol_in_range, false);
 	search_pistol.SetPrecondition(pistol_aquired, false);
 	search_pistol.SetEffect(pistol_aquired, true);
@@ -205,29 +205,11 @@ void Plugin::DllInit()
 	GOAP::WorldState goal_collect_pistol("Collect Pistol");
 	goal_collect_pistol.SetVariable(pistol_collected, true);
 	goal_collect_pistol.priority = 100.f;
-	auto collect_pistol_priorityfunc = [&](float& priority)
-	{
-		// Check if we have already spotted a pistol previously, which we didn't pick up yet (pistol is not nullptr)
-		// or if there is a pistol in view when we haven't seen one already
-		const bool pistolAquired = CheckForPistol();
-		m_WorldState.SetVariable(pistol_aquired, pistolAquired);
-		if(pistolAquired)
-			m_WorldState.SetVariable(pistol_collected, false);
-
-		return pistolAquired ? priority = 200.f : priority = 100.f;
-	};
-	goal_collect_pistol.SetPriorityCalcFunc(collect_pistol_priorityfunc);
 	m_Goals.push_back(goal_collect_pistol);
 
 	GOAP::WorldState goal_flee_purgezone("Flee Purgezone");
 	goal_flee_purgezone.SetVariable(purge_zone_in_range, false);
 	goal_flee_purgezone.priority = 0;
-	auto flee_purgezone_priorityfunc = [&](float& priority)
-	{
-		m_WorldState.SetVariable(purge_zone_in_range, CheckForPurgeZone());
-		return m_WorldState.GetVariable(purge_zone_in_range) ? priority = std::numeric_limits<float>::infinity() : priority = 0.f;
-	};
-	goal_flee_purgezone.SetPriorityCalcFunc(flee_purgezone_priorityfunc);
 	m_Goals.push_back(goal_flee_purgezone);
 }
 
@@ -254,7 +236,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.SpawnPurgeZonesOnMiddleClick = true;
 	params.PrintDebugMessages = true;
 	params.ShowDebugItemNames = true;
-	params.Seed = 1;
+	params.Seed = 2;
 }
 
 //Only Active in DEBUG Mode

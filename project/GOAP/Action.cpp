@@ -3,24 +3,18 @@
 
 #include <iostream>
 
-GOAP::Action::Action()
-    : m_Cost(0)
-    , m_ActionTimeout(10.f)
-    , m_ActionTimer(0.f)
-{
-}
-
-GOAP::Action::Action(const std::string& _name, const int _cost, std::function<bool()> _execFunction)
+GOAP::Action::Action(const std::string& _name, const int _cost)
     : m_Name(_name)
     , m_Cost(_cost)
-    , m_ExecutionFunction(_execFunction)
     , m_ActionTimeout(10.f)
     , m_ActionTimer(0.f)
 {
 }
 
-bool GOAP::Action::OperableOn(const WorldState& ws) const
+bool GOAP::Action::OperableOn(Elite::Blackboard* pBlackboard) const
 {
+    GOAP::WorldState ws{};
+    if (!pBlackboard->GetData("WorldState", ws)) return false;
     for (const auto& preconditions : m_Preconditions)
     {
         try
@@ -38,9 +32,11 @@ bool GOAP::Action::OperableOn(const WorldState& ws) const
     return true;
 }
 
-GOAP::WorldState GOAP::Action::ActOn(const WorldState& ws) const
+GOAP::WorldState GOAP::Action::ActOn(Elite::Blackboard* pBlackboard) const
 {
-    GOAP::WorldState tmp(ws);
+    GOAP::WorldState tmp{};
+    if (!pBlackboard->GetData("WorldState", tmp)) return tmp;
+    
     for (const auto& effect : m_Effects)
     {
         tmp.SetVariable(effect.first, effect.second);
@@ -48,36 +44,27 @@ GOAP::WorldState GOAP::Action::ActOn(const WorldState& ws) const
     return tmp;
 }
 
-bool GOAP::Action::Execute(WorldState& ws, float frameTime)
-{
-    if (!m_IsRunning)
-    {
-        std::cout << "Now executing: " << m_Name << std::endl;
-        m_IsRunning = true;
-    }
-
-    if (m_ExecutionFunction())
-    {
-        std::cout << "Finished executing: " << m_Name << std::endl;
-        if (OperableOn(ws))
-        {
-            ws = ActOn(ws);
-            m_IsDone = true;
-            return true;
-        }
-        
-        return false;
-    }
-
-    m_ActionTimer += frameTime;
-    return m_ActionTimer < m_ActionTimeout;
-}
-
-int GOAP::Action::GetCost() const
-{
-    if (m_CostFunction)
-    {
-        return m_CostFunction(m_Cost);
-    }
-    return m_Cost;
-}
+//bool GOAP::Action::Execute(WorldState& ws, float frameTime)
+//{
+//    if (!m_IsRunning)
+//    {
+//        std::cout << "Now executing: " << m_Name << std::endl;
+//        m_IsRunning = true;
+//    }
+//
+//    if (true)
+//    {
+//        if (OperableOn(ws))
+//        {
+//            std::cout << "Finished executing: " << m_Name << std::endl;
+//            ws = ActOn(ws);
+//            m_IsDone = true;
+//            return true;
+//        }
+//        
+//        return false;
+//    }
+//
+//    m_ActionTimer += frameTime;
+//    return m_ActionTimer < m_ActionTimeout;
+//}
