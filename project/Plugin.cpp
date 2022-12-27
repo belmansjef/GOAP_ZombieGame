@@ -16,23 +16,54 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 
 	//Bit information about the plugin
 	//Please fill this in!!
-	info.BotName = "Research_GOAP";
-	info.Student_FirstName = "Jef";
-	info.Student_LastName = "Belmans";
-	info.Student_Class = "2DAE15N";
+	info.BotName =				"Research_GOAP";
+	info.Student_FirstName =	"Jef";
+	info.Student_LastName =		"Belmans";
+	info.Student_Class =		"2DAE15N";
+
+	m_pAquiredPistols = new std::vector<ItemInfo>{};
+	m_pAquiredShotguns = new std::vector<ItemInfo>{};
+	m_pAquiredMedkits = new std::vector<ItemInfo>{};
+	m_pAquiredFood = new std::vector<ItemInfo>{};
+	m_pAquiredGarbage = new std::vector<ItemInfo>{};
 
 	// Actions
 	m_pActions.push_back(new GOAP::Action_MoveTo);
+	m_pActions.push_back(new GOAP::Action_GrabPistol);
+	m_pActions.push_back(new GOAP::Action_GrabShotgun);
+	m_pActions.push_back(new GOAP::Action_GrabMedkit);
+	m_pActions.push_back(new GOAP::Action_GrabFood);
 	m_pActions.push_back(new GOAP::Action_Wander);
+	m_pActions.push_back(new GOAP::Action_EatFood);
+	m_pActions.push_back(new GOAP::Action_Heal);
 
 	// Initial world state
-	m_WorldState.SetVariable("target_in_range", false);
-	m_WorldState.SetVariable("wandering", false);
+	m_WorldState.SetVariable("target_in_range",		false);
+	m_WorldState.SetVariable("item_collected",		false);
+	m_WorldState.SetVariable("inside_purgezone",	false);
+	m_WorldState.SetVariable("pistol_aquired",		false);
+	m_WorldState.SetVariable("pistol_in_inventory", false);
+	m_WorldState.SetVariable("shotgun_aquired",		false);
+	m_WorldState.SetVariable("shotgun_in_inventory", false);
+	m_WorldState.SetVariable("medkit_aquired",		false);
+	m_WorldState.SetVariable("medkit_in_inventory", false);
+	m_WorldState.SetVariable("low_health",			false);
+	m_WorldState.SetVariable("food_aquired",		false);
+	m_WorldState.SetVariable("food_in_inventory",	false);
+	m_WorldState.SetVariable("low_hunger",			false);
+	m_WorldState.SetVariable("wandering",			false);
 
 	m_pBlackboard = CreateBlackboard();
 
+	m_pGoals.push_back(new GOAP::Goal_FleePurgezone);
+	m_pGoals.push_back(new GOAP::Goal_CollectPistol);
+	m_pGoals.push_back(new GOAP::Goal_CollectShotgun);
+	m_pGoals.push_back(new GOAP::Goal_CollectMedkit);
+	m_pGoals.push_back(new GOAP::Goal_CollectFood);
+	m_pGoals.push_back(new GOAP::Goal_EatFood);
+	m_pGoals.push_back(new GOAP::Goal_Heal);
+	m_pGoals.push_back(new GOAP::Goal_EnterHouse);
 	m_pGoals.push_back(new GOAP::Goal_Wander);
-	m_pGoals.push_back(new GOAP::Goal_MoveToPistol);
 }
 
 //Called only once
@@ -63,7 +94,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.SpawnPurgeZonesOnMiddleClick = true;
 	params.PrintDebugMessages = true;
 	params.ShowDebugItemNames = true;
-	params.Seed = 1;
+	params.Seed = 70;
 }
 
 //Only Active in DEBUG Mode
@@ -135,12 +166,16 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 {
 	m_FrameTime = dt;
 	UpdateHouseInfo();
-	GetNewEntitiesInFOV(m_AquiredEntities);
-
-	m_pBlackboard->ChangeData("Target", m_pInterface->NavMesh_GetClosestPathPoint(m_Target));
-	m_pBlackboard->ChangeData("AgentInfo", m_pInterface->Agent_GetInfo());
-	m_pBlackboard->ChangeData("Entities", m_AquiredEntities);
-	// m_pBlackboard->ChangeData("Interface", m_pInterface);
+	GetNewEntitiesInFOV();
+	GetNewHousesInFOV();
+	CheckForPurgeZone();
+		
+	// m_pBlackboard->ChangeData("WorldState", &m_WorldState);
+	m_pBlackboard->ChangeData("Target",		m_Target);
+	m_pBlackboard->ChangeData("AgentInfo",	m_pInterface->Agent_GetInfo());
+	m_pBlackboard->ChangeData("Houses",		m_AquiredHouses);
+	m_WorldState.SetVariable("low_hunger",	m_pInterface->Agent_GetInfo().Energy < 4.f);
+	m_WorldState.SetVariable("low_health",	m_pInterface->Agent_GetInfo().Health < 4.f);
 
 	auto goal = GetHighestPriorityGoal();
 	if (m_CurrentGoal == nullptr || goal != m_CurrentGoal || empty(m_pPlan))
@@ -152,38 +187,6 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 	{
 		ExecutePlan();
 	}
-
-	//INVENTORY USAGE DEMO
-	//********************
-
-	if (m_GrabItem)
-	{
-		ItemInfo item;
-		//Item_Grab > When DebugParams.AutoGrabClosestItem is TRUE, the Item_Grab function returns the closest item in range
-		//Keep in mind that DebugParams are only used for debugging purposes, by default this flag is FALSE
-		//Otherwise, use GetEntitiesInFOV() to retrieve a vector of all entities in the FOV (EntityInfo)
-		//Item_Grab gives you the ItemInfo back, based on the passed EntityHash (retrieved by GetEntitiesInFOV)
-		if (m_pInterface->Item_Grab({}, item))
-		{
-			//Once grabbed, you can add it to a specific inventory slot
-			//Slot must be empty
-			m_pInterface->Inventory_AddItem(m_InventorySlot, item);
-		}
-	}
-
-	if (m_UseItem)
-	{
-		//Use an item (make sure there is an item at the given inventory slot)
-		m_pInterface->Inventory_UseItem(m_InventorySlot);
-	}
-
-	if (m_RemoveItem)
-	{
-		//Remove an item from a inventory slot
-		m_pInterface->Inventory_RemoveItem(m_InventorySlot);
-	}
-
-	m_steering.RunMode = m_CanRun; //If RunMode is True > MaxLinSpd is increased for a limited time (till your stamina runs out)
 
 	//@End (Demo Purposes)
 	m_GrabItem = false; //Reset State
@@ -200,53 +203,117 @@ void Plugin::Render(float dt) const
 	m_pInterface->Draw_SolidCircle(m_Target, .7f, { 0,0 }, { 1, 0, 0 });
 }
 
-vector<HouseInfo> Plugin::GetHousesInFOV() const
+void Plugin::GetNewHousesInFOV()
 {
-	vector<HouseInfo> vHousesInFOV = {};
-
 	HouseInfo hi = {};
 	for (int i = 0;; ++i)
 	{
 		if (m_pInterface->Fov_GetHouseByIndex(i, hi))
 		{
-			vHousesInFOV.push_back(hi);
+			auto it = std::find(begin(m_AquiredHouses), end(m_AquiredHouses), hi);
+			if (it == end(m_AquiredHouses))
+			{
+				m_AquiredHouses.push_back(reinterpret_cast<HouseInfo_Extended&>(hi));
+				m_AquiredHouses.back().TimeSinceLastVisit = m_AquiredHouses.back().ReactivationTime = 120.f;
+			}
 			continue;
 		}
-
 		break;
 	}
 
-	return vHousesInFOV;
+	if (!empty(m_AquiredHouses))
+		SortEntitiesByDistance(&m_AquiredHouses);
 }
 
-void Plugin::GetNewEntitiesInFOV(std::vector<EntityInfo>& entities)
+void Plugin::GetNewEntitiesInFOV()
 {
-	EntityInfo ei = {};
+	EntityInfo ei{};
+	BYTE flags{};
 	for (int i = 0;; ++i)
 	{
 		if (m_pInterface->Fov_GetEntityByIndex(i, ei))
 		{
 			// Check if we're not already aware of the entity
-			auto it = std::find(begin(entities), end(entities), ei);
-			if (it == end(entities))
-				entities.push_back(ei);
+			auto it = std::find(begin(m_AquiredEntities), end(m_AquiredEntities), ei);
+			if (it == end(m_AquiredEntities))
+			{
+				m_AquiredEntities.push_back(ei);
+				if (ei.Type != eEntityType::ITEM) return;
 
+				ItemInfo item{};
+				m_pInterface->Item_GetInfo(ei, item);
+			
+				switch (item.Type)
+				{
+				case eItemType::PISTOL:
+					m_pAquiredPistols->emplace_back(item);
+					flags |= 1U << 0;
+					break;
+				case eItemType::SHOTGUN:
+					m_pAquiredShotguns->emplace_back(item);
+					flags |= 1U << 1;
+					break;
+				case eItemType::MEDKIT:
+					m_pAquiredMedkits->emplace_back(item);
+					flags |= 1U << 2;
+					break;
+				case eItemType::FOOD:
+					m_pAquiredFood->emplace_back(item);
+					flags |= 1U << 3;
+					break;
+				case eItemType::GARBAGE:
+					m_pAquiredGarbage->emplace_back(item);
+					flags |= 1U << 4;
+					break;
+				}
+			}
 			continue;
 		}
-
 		break;
 	}
+
+	if ((flags >> 0) & 1U)
+		SortEntitiesByDistance(m_pAquiredPistols);
+
+	m_WorldState.SetVariable("pistol_aquired", !m_pAquiredPistols->empty());
+
+	if ((flags >> 1) & 1U)
+		SortEntitiesByDistance(m_pAquiredShotguns);
+
+	m_WorldState.SetVariable("shotgun_aquired", !m_pAquiredShotguns->empty());
+
+	if ((flags >> 2) & 1U)
+		SortEntitiesByDistance(m_pAquiredMedkits);
+
+	m_WorldState.SetVariable("medkit_aquired", !m_pAquiredMedkits->empty());
+
+	if ((flags >> 3) & 1U)
+		SortEntitiesByDistance(m_pAquiredFood);
+
+	m_WorldState.SetVariable("food_aquired", !m_pAquiredFood->empty());
+
+	if ((flags >> 4) & 1U)
+		SortEntitiesByDistance(m_pAquiredGarbage);
+
+	m_WorldState.SetVariable("garbage_aquired", !m_pAquiredGarbage->empty());
 }
 
 Elite::Blackboard* Plugin::CreateBlackboard()
 {
 	Elite::Blackboard* m_pBlackboard = new Elite::Blackboard();
-	m_pBlackboard->AddData("WorldState", &m_WorldState);
-	m_pBlackboard->AddData("AgentInfo", AgentInfo{});
-	m_pBlackboard->AddData("Target", Elite::Vector2{});
-	m_pBlackboard->AddData("Steering", &m_steering);
-	m_pBlackboard->AddData("Entities", m_AquiredEntities);
-	m_pBlackboard->AddData("Interface", m_pInterface);
+	m_pBlackboard->AddData("WorldState",	&m_WorldState);
+	m_pBlackboard->AddData("AgentInfo",		AgentInfo{});
+	m_pBlackboard->AddData("TargetItem",	ItemInfo{});
+	m_pBlackboard->AddData("InventorySlot",	0U);
+	m_pBlackboard->AddData("Target",		Elite::Vector2{});
+	m_pBlackboard->AddData("Steering",		&m_steering);
+	m_pBlackboard->AddData("Interface",		m_pInterface);
+	m_pBlackboard->AddData("Pistols",		m_pAquiredPistols);
+	m_pBlackboard->AddData("Shotguns",		m_pAquiredShotguns);
+	m_pBlackboard->AddData("Meds",			m_pAquiredMedkits);
+	m_pBlackboard->AddData("Food",			m_pAquiredFood);
+	m_pBlackboard->AddData("Garbage",		m_pAquiredGarbage);
+	m_pBlackboard->AddData("Houses",		std::vector<HouseInfo_Extended>{});
 	return m_pBlackboard;
 }
 
@@ -256,7 +323,17 @@ bool Plugin::TryFindPlan(const GOAP::WorldState& ws, const GOAP::WorldState& goa
 	try
 	{
 		m_pPlan = m_ASPlanner.FormulatePlan(ws, goal, actions);
-		return !empty(m_pPlan);
+		if (!empty(m_pPlan))
+		{
+			std::cout << "Found a plan: ";
+			for (auto action : m_pPlan)
+			{
+				std::cout << action->GetName() << " >> ";
+			}
+			std::cout << std::endl;
+			return true;
+		}
+		return false;
 	}
 	catch (const std::exception& e)
 	{
@@ -273,6 +350,7 @@ bool Plugin::ExecutePlan()
 	GOAP::BaseAction* currentAction = m_pPlan.back();
 	if (currentAction->IsValid(m_pBlackboard) && currentAction->Execute(m_pBlackboard))
 	{
+		std::cout << "Finished excecuting " << currentAction->GetName() << std::endl;
 		m_pPlan.pop_back();
 		return empty(m_pPlan);
 	}
@@ -284,7 +362,7 @@ GOAP::WorldState* Plugin::GetHighestPriorityGoal()
 	GOAP::WorldState* newGoal{};
 	for (const auto goal : m_pGoals)
 	{
-		if (goal->IsValid(m_pBlackboard) && (newGoal == nullptr || goal->priority > newGoal->priority))
+		if ((newGoal == nullptr || goal->priority > newGoal->priority) && goal->IsValid(m_pBlackboard))
 		{
 			newGoal = goal;
 		}
@@ -292,58 +370,35 @@ GOAP::WorldState* Plugin::GetHighestPriorityGoal()
 	return newGoal;
 }
 
-bool Plugin::Seek(SteeringPlugin_Output& steering, const Elite::Vector2& target, float epsilon)
-{
-	if (m_pInterface->Agent_GetInfo().Position.DistanceSquared(target) <= powf(epsilon, 2.f))
-	{
-		steering.LinearVelocity = Elite::ZeroVector2;
-		return true;
-	}
-
-	const Elite::Vector2 desired_location = m_pInterface->NavMesh_GetClosestPathPoint(target);
-	steering.LinearVelocity = desired_location - m_pInterface->Agent_GetInfo().Position;
-	steering.LinearVelocity.Normalize();
-	steering.LinearVelocity *= m_pInterface->Agent_GetInfo().MaxLinearSpeed;
-
-	steering.AutoOrient = true;
-
-	return false;
-}
-
-void Plugin::Wander(SteeringPlugin_Output& steering)
-{
-	m_WanderAngle += Elite::randomFloat(-45.f, 45.f);
-	const Elite::Vector2 circle_center = m_pInterface->Agent_GetInfo().Position + (m_pInterface->Agent_GetInfo().LinearVelocity.GetNormalized() * 10.f);
-	const Elite::Vector2 desired_location = m_pInterface->NavMesh_GetClosestPathPoint({ cosf(m_WanderAngle) * 10.f + circle_center.x, sinf(m_WanderAngle) * 10.f + circle_center.y });
-
-	steering.LinearVelocity = desired_location - m_pInterface->Agent_GetInfo().Position;
-	steering.LinearVelocity.Normalize();
-	steering.LinearVelocity *= m_pInterface->Agent_GetInfo().MaxLinearSpeed;
-
-	steering.AutoOrient = true;
-}
-
 bool Plugin::CheckForPurgeZone()
 {
-	for (auto& e : m_EntitiesInFov)
+	EntityInfo ei{};
+	for (int i = 0;; ++i)
 	{
-		if (e.Type == eEntityType::PURGEZONE)
+		if (m_pInterface->Fov_GetEntityByIndex(i, ei))
 		{
-			m_pInterface->PurgeZone_GetInfo(e, m_PurgeZoneInFov);
-			m_WorldState.SetVariable("purge_zone_in_range", true);
-			return true;
+			if (ei.Type == eEntityType::PURGEZONE)
+			{
+				m_pInterface->PurgeZone_GetInfo(ei, m_PurgeZoneInFov);
+				m_Target = (m_pInterface->Agent_GetInfo().Position - m_PurgeZoneInFov.Center).GetNormalized() * (m_PurgeZoneInFov.Radius * 2.f + 10.f);
+				m_WorldState.SetVariable("inside_purgezone", true);
+				return true;
+			}
+			continue;
 		}
+		break;
 	}
 
+	m_WorldState.SetVariable("inside_purgezone", false);
 	return false;
 }
 
 template<typename T>
-void Plugin::SortEntitiesByDistance(std::vector<T>& entities)
+void Plugin::SortEntitiesByDistance(std::vector<T>* entities)
 {
-	if (empty(entities)) throw std::runtime_error("ERROR: can't run \"SortEntitiesByDistance()\" on an empty container!");
+	if (entities == nullptr) return;
 
-	std::sort(entities.begin(), entities.end(), [&](const T& a, const T& b)
+	std::sort(entities->begin(), entities->end(), [&](const T& a, const T& b)
 		{
 			const Elite::Vector2 agentPos{ m_pInterface->Agent_GetInfo().Position };
 			const float distToA{ a.Location.DistanceSquared(agentPos) };
@@ -358,13 +413,13 @@ void Plugin::UpdateHouseInfo()
 {
 	if (empty(m_AquiredHouses)) return;
 
-	m_WorldState.SetVariable("house_aquired", false);
 	for (auto& house : m_AquiredHouses)
-	{
-		house.TimeSinceLastVisit += m_FrameTime;
-		if (!house.HasRecentlyVisited())
+	{		
+		if (m_pInterface->Agent_GetInfo().Position.DistanceSquared(house.Location) < 20.f)
 		{
-			m_WorldState.SetVariable("house_aquired", true);
+			house.TimeSinceLastVisit = 0.f;
 		}
+		else
+			house.TimeSinceLastVisit += m_FrameTime;
 	}
 }

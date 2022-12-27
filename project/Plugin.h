@@ -30,8 +30,8 @@ public:
 private:
 	//Interface, used to request data from/perform actions with the AI Framework
 	IExamInterface* m_pInterface = nullptr;
-	std::vector<HouseInfo> GetHousesInFOV() const;
-	void GetNewEntitiesInFOV(std::vector<EntityInfo>& entities);
+	void GetNewHousesInFOV();
+	void GetNewEntitiesInFOV();
 
 	Elite::Vector2 m_Target = {};
 	bool m_CanRun = false; //Demo purpose
@@ -44,8 +44,14 @@ private:
 	UINT m_InventorySlot = 0;
 	UINT m_ItemsInInventory = 0;
 
+	// Aquired entities
 	std::vector<HouseInfo_Extended> m_AquiredHouses;
 	std::vector<EntityInfo> m_AquiredEntities;
+	std::vector<ItemInfo>* m_pAquiredPistols;
+	std::vector<ItemInfo>* m_pAquiredShotguns;
+	std::vector<ItemInfo>* m_pAquiredMedkits;
+	std::vector<ItemInfo>* m_pAquiredFood;
+	std::vector<ItemInfo>* m_pAquiredGarbage;
 	
 	// In current FOV
 	std::vector<EntityInfo> m_EntitiesInFov;
@@ -54,26 +60,7 @@ private:
 
 	float m_FrameTime = 0.f;
 
-	// States
-	// Constants for the various states are helpful to keep us from
-	// accidentally mistyping a state name.
-	const int house_aquired = 0;
-	const int inside_house = 5;
-	const int health_low = 10;
-	const int energy_low = 15;
-	const int stamina_low = 20;
-	const int food_aquired = 25;
-	const int food_in_range = 30;
-	const int pistol_aquired = 35;
-	const int pistol_in_range = 40;
-	const int pistol_in_inventory = 45;
-	const int pistol_collected = 50;
-	const int purge_zone_in_range = 55;
-	const int target_aquired = 60;
-	const int target_in_range = 65;
-
 	// GOAP
-	bool m_HasPlan{ false };
 	GOAP::WorldState m_WorldState;
 	std::vector<GOAP::BaseAction*> m_pPlan;
 	std::vector<GOAP::BaseAction*> m_pActions;
@@ -82,7 +69,6 @@ private:
 	GOAP::Planner m_ASPlanner;
 	
 	Elite::Blackboard* m_pBlackboard;
-
 	Elite::Blackboard* CreateBlackboard();
 
 	bool TryFindPlan(const GOAP::WorldState& ws, const GOAP::WorldState& goal, std::vector<GOAP::BaseAction*>& actions);
@@ -92,12 +78,10 @@ private:
 	// Steering
 	float m_WanderAngle{};
 	SteeringPlugin_Output m_steering;
-	bool Seek(SteeringPlugin_Output& steering, const Elite::Vector2& target, float epsilon);
-	void Wander(SteeringPlugin_Output& steering);
 
 	// Helpers
 	bool CheckForPurgeZone();
-	template<typename T> void SortEntitiesByDistance(std::vector<T>& entities);
+	template<typename T> void SortEntitiesByDistance(std::vector<T>* entities);
 	void UpdateHouseInfo();
 };
 

@@ -6,6 +6,8 @@
 #include "Data/EBlackboard.h"
 #include "Exam_HelperStructs.h"
 
+class IExamInterface;
+
 namespace GOAP
 {
 	struct WorldState;
@@ -23,7 +25,7 @@ namespace GOAP
 		/// </summary>
 		/// <param name="ws">The WorldState to check if this action can operate on,</param>
 		/// <returns>True if the action can operate on the WorldState, false otherwise,</returns>
-		bool OperableOn(const WorldState& ws) const;
+		virtual bool OperableOn(const WorldState& ws) const;
 
 		/// <summary>
 		/// Act on the given WorldState.
@@ -42,17 +44,14 @@ namespace GOAP
 
 		virtual int GetCost() const { return m_Cost; }
 		std::string GetName() const { return m_Name; }
-		bool GetIsDone() const { return m_IsDone; }
 
 	protected:
-		bool m_IsRunning{false};
-		bool m_IsDone{false};
-		std::string m_Name;	// Human name of the action
-		int m_Cost;			// The base cost of this action
+		int m_Cost;
+		std::string m_Name;	
 		Elite::Vector2 m_Target;
 		AgentInfo m_AgentInfo;
+		IExamInterface* m_pInterface;
 		
-
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.
 		std::unordered_map<std::string, bool> m_Preconditions;

@@ -1,5 +1,6 @@
 #include "BaseAction.h"
 #include "WorldState.h"
+#include "IExamInterface.h"
 
 #include <iostream>
 
@@ -9,6 +10,7 @@ GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost)
     , m_Cost(_cost)
     , m_Target(Elite::Vector2{})
     , m_AgentInfo(AgentInfo{})
+    , m_pInterface(nullptr)
     , m_ActionTimeout(20.f)
     , m_ActionTimer(0.f)
 {
@@ -28,8 +30,7 @@ bool GOAP::BaseAction::OperableOn(const WorldState& ws) const
             {
                 return false;
             }
-        } 
-        catch (const std::out_of_range&) 
+        } catch (const std::out_of_range&)
         {
             return false;
         }

@@ -116,8 +116,9 @@ struct HouseInfo_Extended : HouseInfo
 {
 	float TimeSinceLastVisit{20.f};
 	float ReactivationTime{20.f};
-	bool  HasRecentlyVisited() const { return TimeSinceLastVisit < ReactivationTime; }
+	bool HasRecentlyVisited() const { return TimeSinceLastVisit < ReactivationTime; }
 	bool operator==(const HouseInfo_Extended& rhs) { return Location == rhs.Location; }
+	bool operator==(const HouseInfo& rhs) { return Location == rhs.Location; }
 };
 
 struct EnemyInfo
