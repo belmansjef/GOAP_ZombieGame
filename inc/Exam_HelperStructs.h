@@ -154,7 +154,7 @@ struct EntityInfo
 	Elite::Vector2 Location;
 
 	int EntityHash = 0;
-	bool operator==(const EntityInfo& other) const { return EntityHash == other.EntityHash; }
+	bool operator==(const EntityInfo& other) const { return Location == other.Location; }
 };
 
 struct WorldInfo

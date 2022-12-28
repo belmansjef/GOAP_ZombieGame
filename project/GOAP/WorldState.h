@@ -66,6 +66,29 @@ namespace GOAP
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
 	};
 
+	struct Goal_Heal final : WorldState
+	{
+	public:
+		Goal_Heal() : WorldState("Heal", 950)
+		{
+			SetVariable("medkit_in_inventory", false);
+			SetVariable("low_health", false);
+		}
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
+
+	struct Goal_EliminateThreat final : WorldState
+	{
+	public:
+		Goal_EliminateThreat() : WorldState("Eliminate Threat", 900)
+		{
+			SetVariable("in_danger", false);
+		}
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
+
 	struct Goal_CollectShotgun final : WorldState
 	{
 	public:
@@ -97,18 +120,6 @@ namespace GOAP
 		{
 			SetVariable("medkit_aquired", false);
 			SetVariable("medkit_in_inventory", true);
-		}
-
-		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
-	};
-
-	struct Goal_Heal final : WorldState
-	{
-	public:
-		Goal_Heal() : WorldState("Use Medkit", 130)
-		{
-			SetVariable("medkit_in_inventory", false);
-			SetVariable("low_health", false);
 		}
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;

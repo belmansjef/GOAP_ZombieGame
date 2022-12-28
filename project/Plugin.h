@@ -47,6 +47,7 @@ private:
 	// Aquired entities
 	std::vector<HouseInfo_Extended> m_AquiredHouses;
 	std::vector<EntityInfo> m_AquiredEntities;
+	std::vector<EnemyInfo*> m_pAquiredEnemies;
 	std::vector<ItemInfo>* m_pAquiredPistols;
 	std::vector<ItemInfo>* m_pAquiredShotguns;
 	std::vector<ItemInfo>* m_pAquiredMedkits;
@@ -80,6 +81,7 @@ private:
 	SteeringPlugin_Output m_steering;
 
 	// Helpers
+	void ClearKilledEnemies();
 	bool CheckForPurgeZone();
 	template<typename T> void SortEntitiesByDistance(std::vector<T>* entities);
 	void UpdateHouseInfo();

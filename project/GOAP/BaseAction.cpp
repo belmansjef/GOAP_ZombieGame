@@ -13,6 +13,7 @@ GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost)
     , m_pInterface(nullptr)
     , m_ActionTimeout(20.f)
     , m_ActionTimer(0.f)
+    , m_pWorldState(nullptr)
 {
 }
 

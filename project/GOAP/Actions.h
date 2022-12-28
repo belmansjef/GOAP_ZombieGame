@@ -37,10 +37,9 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 15.f };
+		const float m_AngleError{ 0.5f };
 
 		ItemInfo m_TargetItem;
-		WorldState* m_pWorldState;
 		std::vector<ItemInfo>* m_pFood;
 		SteeringPlugin_Output* m_pSteering;
 	};
@@ -54,10 +53,9 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 15.f };
+		const float m_AngleError{ 0.5f };
 
 		ItemInfo m_TargetItem;
-		WorldState* m_pWorldState;
 		std::vector<ItemInfo>* m_pPistols;
 		SteeringPlugin_Output* m_pSteering;
 	};
@@ -71,10 +69,9 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 15.f };
+		const float m_AngleError{ 0.5f };
 
 		ItemInfo m_TargetItem;
-		WorldState* m_pWorldState;
 		std::vector<ItemInfo>* m_pShotguns;
 		SteeringPlugin_Output* m_pSteering;
 	};
@@ -88,10 +85,9 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 15.f };
+		const float m_AngleError{ 0.5f };
 
 		ItemInfo m_TargetItem;
-		WorldState* m_pWorldState;
 		std::vector<ItemInfo>* m_pMeds;
 		SteeringPlugin_Output* m_pSteering;
 	};
@@ -103,8 +99,6 @@ namespace GOAP
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
-	private:
-		WorldState* m_pWorldState;
 	};
 
 	class Action_Heal final : public BaseAction
@@ -114,7 +108,64 @@ namespace GOAP
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
+	};
+
+	class Action_SearchEnemy final : public BaseAction
+	{
+	public:
+		Action_SearchEnemy();
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
+		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
+
 	private:
-		WorldState* m_pWorldState;
+		std::vector<EnemyInfo*> m_pEnemies;
+		SteeringPlugin_Output* m_pSteering;
+	};
+
+	class Action_KillEnemy_Pistol final : public BaseAction
+	{
+	public:
+		Action_KillEnemy_Pistol();
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
+		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
+
+	private:
+		const float m_AngleError{ 0.05f };
+
+		UINT m_InventorySlot;
+		std::vector<EnemyInfo*> m_pEnemies;
+		SteeringPlugin_Output* m_pSteering;
+		
+	};
+
+	class Action_KillEnemy_Shotgun final : public BaseAction
+	{
+	public:
+		Action_KillEnemy_Shotgun();
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
+		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
+
+	private:
+		const float m_AngleError{ 2.f };
+
+		UINT m_InventorySlot;
+		std::vector<EnemyInfo*> m_pEnemies;
+		SteeringPlugin_Output* m_pSteering;
+	};
+
+	class Action_FleeToSafety final : public BaseAction
+	{
+	public:
+		Action_FleeToSafety();
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
+		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
+
+	private:
+		SteeringPlugin_Output* m_pSteering;
+		std::vector<HouseInfo_Extended>* m_pHouses;
 	};
 }

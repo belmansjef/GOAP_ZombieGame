@@ -4,7 +4,7 @@
 #include "WorldState.h"
 
 GOAP::Action_Wander::Action_Wander()
-	: BaseAction::BaseAction("Wander", 5)
+	: BaseAction("Wander", 5)
 	, m_pSteering(new SteeringPlugin_Output())
 {
 	SetEffect("wandering", true);
@@ -33,7 +33,7 @@ bool GOAP::Action_Wander::Execute(Elite::Blackboard* pBlackboard)
 }
 
 GOAP::Action_MoveTo::Action_MoveTo()
-	: BaseAction::BaseAction("Move To", 5)
+	: BaseAction("Move To", 5)
 	, m_pSteering(new SteeringPlugin_Output())
 {
 	SetEffect("target_in_range", true);
@@ -45,12 +45,13 @@ bool GOAP::Action_MoveTo::IsValid(Elite::Blackboard* pBlackboard)
 		pBlackboard->GetData("Target", m_Target)
 		&& pBlackboard->GetData("AgentInfo", m_AgentInfo)
 		&& pBlackboard->GetData("Steering", m_pSteering)
-		&& pBlackboard->GetData("Interface", m_pInterface);
+		&& pBlackboard->GetData("Interface", m_pInterface)
+		&& pBlackboard->GetData("WorldState", m_pWorldState);
 }
 
 bool GOAP::Action_MoveTo::Execute(Elite::Blackboard* pBlackboard)
 {
-	if (m_AgentInfo.Position.DistanceSquared(m_Target) <= 5.f)
+	if (m_AgentInfo.Position.DistanceSquared(m_Target) <= 3.5f)
 	{
 		m_pSteering->LinearVelocity = Elite::ZeroVector2;
 		return true;
@@ -61,22 +62,23 @@ bool GOAP::Action_MoveTo::Execute(Elite::Blackboard* pBlackboard)
 	m_pSteering->LinearVelocity.Normalize();
 	m_pSteering->LinearVelocity *= m_AgentInfo.MaxLinearSpeed;
 
-	/*if (m_pInterface->Agent_GetInfo().Stamina > 4.f)
+	if (m_pWorldState->GetVariable("inside_purgezone"))
 	{
-		m_pSteering->RunMode = true;
+		if (m_pInterface->Agent_GetInfo().Stamina > 4.f)
+			m_pSteering->RunMode = true;
+		else if (m_pInterface->Agent_GetInfo().Stamina == 0.f)
+			m_pSteering->RunMode = false;
 	}
-	else if(m_pInterface->Agent_GetInfo().Stamina == 0.f)
-	{
+	else
 		m_pSteering->RunMode = false;
-	}*/
+
 
 	return false;
 }
 
 GOAP::Action_GrabFood::Action_GrabFood()
-	: BaseAction::BaseAction("Grab Food", 5)
+	: BaseAction("Grab Food", 5)
 	, m_pSteering(nullptr)
-	, m_pWorldState(nullptr)
 	, m_pFood(nullptr)
 {
 	SetPrecondition("target_in_range", true);
@@ -100,7 +102,7 @@ bool GOAP::Action_GrabFood::Execute(Elite::Blackboard* pBlackboard)
 {
 	m_pSteering->AutoOrient = false;
 
-	const Elite::Vector2 dir_vector = (m_Target - m_AgentInfo.Position).GetNormalized();
+	const Elite::Vector2 dir_vector = (m_pFood->back().Location - m_AgentInfo.Position).GetNormalized();
 
 	const float target_angle = atan2f(dir_vector.y, dir_vector.x);
 	const float agent_angle = m_AgentInfo.Orientation;
@@ -128,9 +130,8 @@ bool GOAP::Action_GrabFood::Execute(Elite::Blackboard* pBlackboard)
 }
 
 GOAP::Action_GrabPistol::Action_GrabPistol()
-	: BaseAction::BaseAction("Grab Pistol", 5)
+	: BaseAction("Grab Pistol", 5)
 	, m_pSteering(nullptr)
-	, m_pWorldState(nullptr)
 	, m_pPistols(nullptr)
 {
 	SetPrecondition("target_in_range", true);
@@ -154,7 +155,7 @@ bool GOAP::Action_GrabPistol::Execute(Elite::Blackboard* pBlackboard)
 {
 	m_pSteering->AutoOrient = false;
 
-	const Elite::Vector2 dir_vector = (m_Target - m_AgentInfo.Position).GetNormalized();
+	const Elite::Vector2 dir_vector = (m_pPistols->back().Location - m_AgentInfo.Position).GetNormalized();
 
 	const float target_angle = atan2f(dir_vector.y, dir_vector.x);
 	const float agent_angle = m_AgentInfo.Orientation;
@@ -162,6 +163,7 @@ bool GOAP::Action_GrabPistol::Execute(Elite::Blackboard* pBlackboard)
 
 	if (abs(delta_angle) <= m_AngleError)
 	{
+		std::cout << m_pPistols->back().Location << std::endl;
 		m_pSteering->AngularVelocity = 0.f;
 		if (m_pInterface->Item_Grab({}, m_TargetItem) && m_TargetItem.Type == eItemType::PISTOL)
 		{
@@ -182,9 +184,8 @@ bool GOAP::Action_GrabPistol::Execute(Elite::Blackboard* pBlackboard)
 }
 
 GOAP::Action_GrabShotgun::Action_GrabShotgun()
-	: BaseAction::BaseAction("Grab Shotgun", 5)
+	: BaseAction("Grab Shotgun", 5)
 	, m_pSteering(nullptr)
-	, m_pWorldState(nullptr)
 	, m_pShotguns(nullptr)
 {
 	SetPrecondition("target_in_range", true);
@@ -208,7 +209,7 @@ bool GOAP::Action_GrabShotgun::Execute(Elite::Blackboard* pBlackboard)
 {
 	m_pSteering->AutoOrient = false;
 
-	const Elite::Vector2 dir_vector = (m_Target - m_AgentInfo.Position).GetNormalized();
+	const Elite::Vector2 dir_vector = (m_pShotguns->back().Location - m_AgentInfo.Position).GetNormalized();
 
 	const float target_angle = atan2f(dir_vector.y, dir_vector.x);
 	const float agent_angle = m_AgentInfo.Orientation;
@@ -236,9 +237,8 @@ bool GOAP::Action_GrabShotgun::Execute(Elite::Blackboard* pBlackboard)
 }
 
 GOAP::Action_GrabMedkit::Action_GrabMedkit()
-	: BaseAction::BaseAction("Grab Medkit", 5)
+	: BaseAction("Grab Medkit", 5)
 	, m_pSteering(nullptr)
-	, m_pWorldState(nullptr)
 	, m_pMeds(nullptr)
 {
 	SetPrecondition("target_in_range", true);
@@ -262,7 +262,7 @@ bool GOAP::Action_GrabMedkit::Execute(Elite::Blackboard* pBlackboard)
 {
 	m_pSteering->AutoOrient = false;
 
-	const Elite::Vector2 dir_vector = (m_Target - m_AgentInfo.Position).GetNormalized();
+	const Elite::Vector2 dir_vector = (m_pMeds->back().Location - m_AgentInfo.Position).GetNormalized();
 
 	const float target_angle = atan2f(dir_vector.y, dir_vector.x);
 	const float agent_angle = m_AgentInfo.Orientation;
@@ -290,8 +290,7 @@ bool GOAP::Action_GrabMedkit::Execute(Elite::Blackboard* pBlackboard)
 }
 
 GOAP::Action_EatFood::Action_EatFood()
-	: BaseAction::BaseAction("Eat Food", 1)
-	, m_pWorldState(nullptr)
+	: BaseAction("Eat Food", 1)
 {
 	SetPrecondition("food_in_inventory", true);
 	SetEffect("food_in_inventory", false);
@@ -316,8 +315,7 @@ bool GOAP::Action_EatFood::Execute(Elite::Blackboard* pBlackboard)
 }
 
 GOAP::Action_Heal::Action_Heal()
-	: BaseAction::BaseAction("Heal", 1)
-	, m_pWorldState(nullptr)
+	: BaseAction("Heal", 1)
 {
 	SetPrecondition("medkit_in_inventory", true);
 	SetEffect("medkit_in_inventory", false);
@@ -339,4 +337,186 @@ bool GOAP::Action_Heal::Execute(Elite::Blackboard* pBlackboard)
 		return true;
 	}
 	return false;
+}
+
+GOAP::Action_KillEnemy_Pistol::Action_KillEnemy_Pistol()
+	: BaseAction("Kill Enemy Pistol", 5)
+	, m_pEnemies()
+	, m_pSteering(nullptr)
+	, m_InventorySlot(0U)
+{
+	SetPrecondition("enemy_aquired", true);
+	SetPrecondition("pistol_in_inventory", true);
+	SetEffect("enemy_aquired", false);
+	SetEffect("in_danger", false);
+}
+
+bool GOAP::Action_KillEnemy_Pistol::IsValid(Elite::Blackboard* pBlackboard)
+{
+	pBlackboard->GetData("Interface", m_pInterface);
+	ItemInfo weapon;
+	if (!m_pInterface->Inventory_GetItem(0U, weapon)) return false;
+	return 
+		pBlackboard->GetData("WorldState", m_pWorldState)
+		&& pBlackboard->GetData("Enemies", m_pEnemies)
+		&& pBlackboard->GetData("Steering", m_pSteering)
+		&& pBlackboard->GetData("AgentInfo", m_AgentInfo)
+		&& m_pInterface->Weapon_GetAmmo(weapon) != 0;
+}
+
+bool GOAP::Action_KillEnemy_Pistol::Execute(Elite::Blackboard* pBlackboard)
+{
+	m_pSteering->AutoOrient = false;
+	m_pSteering->LinearVelocity = Elite::ZeroVector2;
+
+	const Elite::Vector2 dir_vector = (m_pEnemies.back()->Location - m_AgentInfo.Position).GetNormalized();
+
+	const float target_angle = atan2f(dir_vector.y, dir_vector.x);
+	const float agent_angle = m_AgentInfo.Orientation;
+	const float delta_angle = target_angle - agent_angle;
+
+	if (abs(delta_angle) <= m_AngleError)
+	{
+		std::cout << "Delta angle: " << delta_angle << std::endl;
+		std::cout << "Shooting at enemy" << std::endl;
+		m_pSteering->AngularVelocity = 0.f;
+		m_pInterface->Inventory_UseItem(m_InventorySlot);
+		if (m_pEnemies.back()->Health <= 0.f)
+		{
+			std::cout << "Killed enemy" << std::endl;
+			*m_pWorldState = ActOn(*m_pWorldState);
+			return true;
+		}
+	}
+
+	m_pSteering->AngularVelocity = 1.f;
+	if (delta_angle < 0 || delta_angle > static_cast<float>(M_PI))
+	{
+		m_pSteering->AngularVelocity = -1.f;
+	}
+
+	return false;
+}
+
+GOAP::Action_KillEnemy_Shotgun::Action_KillEnemy_Shotgun()
+	: BaseAction("Kill Enemy Shotgun", 3)
+	, m_pEnemies()
+	, m_pSteering(nullptr)
+	, m_InventorySlot(1U)
+{
+	SetPrecondition("enemy_aquired", true);
+	SetPrecondition("shotgun_in_inventory", true);
+	SetEffect("enemy_aquired", false);
+	SetEffect("in_danger", false);
+}
+
+bool GOAP::Action_KillEnemy_Shotgun::IsValid(Elite::Blackboard* pBlackboard)
+{
+	pBlackboard->GetData("Interface", m_pInterface);
+	ItemInfo weapon;
+	if (!m_pInterface->Inventory_GetItem(1U, weapon)) return false;
+
+	return 
+		pBlackboard->GetData("WorldState", m_pWorldState)
+		&& pBlackboard->GetData("Enemies", m_pEnemies)
+		&& pBlackboard->GetData("Steering", m_pSteering)
+		&& pBlackboard->GetData("AgentInfo", m_AgentInfo)
+		&& m_pInterface->Weapon_GetAmmo(weapon) != 0;
+}
+
+bool GOAP::Action_KillEnemy_Shotgun::Execute(Elite::Blackboard* pBlackboard)
+{
+	m_pSteering->AutoOrient = false;
+
+	const Elite::Vector2 dir_vector = (m_pEnemies.back()->Location - m_AgentInfo.Position).GetNormalized();
+
+	const float target_angle = atan2f(dir_vector.y, dir_vector.x);
+	const float agent_angle = m_AgentInfo.Orientation;
+	const float delta_angle = target_angle - agent_angle;
+
+	if (abs(delta_angle) <= m_AngleError)
+	{
+		m_pSteering->AngularVelocity = 0.f;
+		m_pInterface->Inventory_UseItem(m_InventorySlot);
+		if (m_pEnemies.back()->Health <= 0.f)
+		{
+			*m_pWorldState = ActOn(*m_pWorldState);
+			m_pEnemies.pop_back();
+			return true;
+		}
+	}
+
+	m_pSteering->AngularVelocity = m_AgentInfo.MaxAngularSpeed;
+	if (delta_angle < 0 || delta_angle > static_cast<float>(M_PI))
+	{
+		m_pSteering->AngularVelocity = -m_AgentInfo.MaxAngularSpeed;
+	}
+
+	return false;
+}
+
+GOAP::Action_FleeToSafety::Action_FleeToSafety()
+	: BaseAction("Flee To Safety", 20)
+	, m_pSteering(nullptr)
+{
+	SetPrecondition("enemy_aquired", true);
+	SetPrecondition("house_aquired", true);
+	SetEffect("enemy_aquired", false);
+	SetEffect("in_danger", false);
+}
+
+bool GOAP::Action_FleeToSafety::IsValid(Elite::Blackboard* pBlackboard)
+{
+	return pBlackboard->GetData("Interface", m_pInterface)
+		&& pBlackboard->GetData("WorldState", m_pWorldState)
+		&& pBlackboard->GetData("Steering", m_pSteering)
+		&& pBlackboard->GetData("Houses", m_pHouses);
+}
+
+bool GOAP::Action_FleeToSafety::Execute(Elite::Blackboard* pBlackboard)
+{
+	if (m_AgentInfo.Position.DistanceSquared(m_pHouses->back().Location) <= 10.f)
+	{
+		m_pSteering->LinearVelocity = Elite::ZeroVector2;
+		*m_pWorldState = ActOn(*m_pWorldState);
+		return true;
+	}
+
+	m_pSteering->AutoOrient = true;
+	m_pSteering->LinearVelocity = m_pInterface->NavMesh_GetClosestPathPoint(m_pHouses->back().Location) - m_AgentInfo.Position;
+	m_pSteering->LinearVelocity.Normalize();
+	m_pSteering->LinearVelocity *= m_AgentInfo.MaxLinearSpeed;
+
+	if (m_pInterface->Agent_GetInfo().Stamina > 4.f)
+		m_pSteering->RunMode = true;
+	else if(m_pInterface->Agent_GetInfo().Stamina == 0.f)
+		m_pSteering->RunMode = false;
+
+	return false;
+}
+
+GOAP::Action_SearchEnemy::Action_SearchEnemy()
+	:BaseAction("Search Enemy", 1)
+	, m_pSteering(nullptr)
+	, m_pEnemies()
+{
+	SetPrecondition("enemy_aquired", false);
+	SetEffect("enemy_aquired", true);
+}
+
+bool GOAP::Action_SearchEnemy::IsValid(Elite::Blackboard* pBlackboard)
+{
+	return pBlackboard->GetData("Interface", m_pInterface)
+		&& pBlackboard->GetData("WorldState", m_pWorldState)
+		&& pBlackboard->GetData("Enemies", m_pEnemies)
+		&& pBlackboard->GetData("AgentInfo", m_AgentInfo)
+		&& pBlackboard->GetData("Steering", m_pSteering);
+}
+
+bool GOAP::Action_SearchEnemy::Execute(Elite::Blackboard* pBlackboard)
+{
+	m_pSteering->AutoOrient = false;
+	m_pSteering->LinearVelocity = Elite::ZeroVector2;
+	m_pSteering->AngularVelocity = m_AgentInfo.MaxAngularSpeed;
+	return !m_pEnemies.empty();
 }

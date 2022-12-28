@@ -51,6 +51,7 @@ namespace GOAP
 		Elite::Vector2 m_Target;
 		AgentInfo m_AgentInfo;
 		IExamInterface* m_pInterface;
+		WorldState* m_pWorldState;
 		
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.

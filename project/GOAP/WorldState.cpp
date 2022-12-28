@@ -134,7 +134,14 @@ bool GOAP::Goal_Heal::IsValid(Elite::Blackboard* pBlackboard) const
 {
     WorldState* ws;
     if (!pBlackboard->GetData("WorldState", ws)) return false;
-    return (ws->GetVariable("medkit_in_inventory") && ws->GetVariable("low_health")) || ws->GetVariable("medkit_aquired");
+    return (ws->GetVariable("medkit_in_inventory") && ws->GetVariable("low_health")) || (ws->GetVariable("medkit_in_inventory") && ws->GetVariable("medkit_aquired"));
+}
+
+bool GOAP::Goal_EliminateThreat::IsValid(Elite::Blackboard* pBlackboard) const
+{
+    WorldState* ws;
+    if (!pBlackboard->GetData("WorldState", ws)) return false;
+    return ws->GetVariable("enemy_aquired") || ws->GetVariable("in_danger");
 }
 
 bool GOAP::Goal_CollectFood::IsValid(Elite::Blackboard* pBlackboard) const
