@@ -16,7 +16,7 @@ namespace GOAP
 	{
 	public:
 		BaseAction() = default;
-		BaseAction(const std::string& _name, const int _cost);
+		BaseAction(const std::string& _name, const int _cost, float actionTimeout = 20.f);
 		virtual ~BaseAction();
 
 		/// <summary>
@@ -52,6 +52,7 @@ namespace GOAP
 		AgentInfo m_AgentInfo;
 		IExamInterface* m_pInterface;
 		WorldState* m_pWorldState;
+		float m_FrameTime;
 		
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.

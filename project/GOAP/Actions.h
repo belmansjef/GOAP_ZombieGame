@@ -37,7 +37,7 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 0.5f };
+		const float m_AngleError{ 0.75f };
 
 		ItemInfo m_TargetItem;
 		std::vector<ItemInfo>* m_pFood;
@@ -53,7 +53,7 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 0.5f };
+		const float m_AngleError{ 0.75f };
 
 		ItemInfo m_TargetItem;
 		std::vector<ItemInfo>* m_pPistols;
@@ -69,7 +69,7 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 0.5f };
+		const float m_AngleError{ 0.75f };
 
 		ItemInfo m_TargetItem;
 		std::vector<ItemInfo>* m_pShotguns;
@@ -85,7 +85,7 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 0.5f };
+		const float m_AngleError{ 0.75f };
 
 		ItemInfo m_TargetItem;
 		std::vector<ItemInfo>* m_pMeds;
@@ -119,7 +119,7 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		std::vector<EnemyInfo*> m_pEnemies;
+		std::vector<EnemyInfo> m_Enemies;
 		SteeringPlugin_Output* m_pSteering;
 	};
 
@@ -132,10 +132,12 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		const float m_AngleError{ 0.05f };
+		const float m_AngleError{ 0.01f };
+		const float m_ShotCooldown{ 0.3f };
+		float m_LastShotTimer{};
 
 		UINT m_InventorySlot;
-		std::vector<EnemyInfo*> m_pEnemies;
+		std::vector<EnemyInfo> m_Enemies;
 		SteeringPlugin_Output* m_pSteering;
 		
 	};
@@ -150,9 +152,11 @@ namespace GOAP
 
 	private:
 		const float m_AngleError{ 2.f };
+		const float m_ShotCooldown{ 0.3f };
+		float m_LastShotTimer{};
 
 		UINT m_InventorySlot;
-		std::vector<EnemyInfo*> m_pEnemies;
+		std::vector<EnemyInfo> m_Enemies;
 		SteeringPlugin_Output* m_pSteering;
 	};
 

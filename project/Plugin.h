@@ -32,6 +32,7 @@ private:
 	IExamInterface* m_pInterface = nullptr;
 	void GetNewHousesInFOV();
 	void GetNewEntitiesInFOV();
+	std::vector<EnemyInfo> GetEnemiesInFOV();
 
 	Elite::Vector2 m_Target = {};
 	bool m_CanRun = false; //Demo purpose
@@ -45,9 +46,9 @@ private:
 	UINT m_ItemsInInventory = 0;
 
 	// Aquired entities
-	std::vector<HouseInfo_Extended> m_AquiredHouses;
-	std::vector<EntityInfo> m_AquiredEntities;
-	std::vector<EnemyInfo*> m_pAquiredEnemies;
+	std::vector<HouseInfo_Extended>* m_pAquiredHouses;
+	std::vector<EntityInfo>* m_pAquiredEntities;
+	std::vector<EnemyInfo> m_EnemiesInFOV;
 	std::vector<ItemInfo>* m_pAquiredPistols;
 	std::vector<ItemInfo>* m_pAquiredShotguns;
 	std::vector<ItemInfo>* m_pAquiredMedkits;
@@ -81,7 +82,6 @@ private:
 	SteeringPlugin_Output m_steering;
 
 	// Helpers
-	void ClearKilledEnemies();
 	bool CheckForPurgeZone();
 	template<typename T> void SortEntitiesByDistance(std::vector<T>* entities);
 	void UpdateHouseInfo();

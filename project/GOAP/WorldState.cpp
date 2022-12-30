@@ -173,14 +173,14 @@ bool GOAP::Goal_EatFood::IsValid(Elite::Blackboard* pBlackboard) const
 
 bool GOAP::Goal_EnterHouse::IsValid(Elite::Blackboard* pBlackboard) const
 {
-    std::vector<HouseInfo_Extended> houses;
-    if (!pBlackboard->GetData("Houses", houses) || empty(houses)) return false;
+    std::vector<HouseInfo_Extended>* houses;
+    if (!pBlackboard->GetData("Houses", houses) || houses->empty()) return false;
 
     IExamInterface* pInterface;
     if (!pBlackboard->GetData("Interface", pInterface) || pInterface == nullptr) return false;
 
     float mostRecentDiscoverTime{INFINITY};
-    for (auto& house : houses)
+    for (auto& house : *houses)
     {
         if (!house.HasRecentlyVisited() && mostRecentDiscoverTime > house.TimeSinceLastVisit)
         {

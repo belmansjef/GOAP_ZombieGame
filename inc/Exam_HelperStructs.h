@@ -146,6 +146,7 @@ struct PurgeZoneInfo
 	float Radius = 0.0f;
 
 	int ZoneHash = 0;
+	bool operator!=(const PurgeZoneInfo& other) { return Center != other.Center; }
 };
 
 struct EntityInfo
