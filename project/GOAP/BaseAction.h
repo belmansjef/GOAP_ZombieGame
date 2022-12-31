@@ -35,7 +35,18 @@ namespace GOAP
 		/// <returns>A copy of the supplied WorldState, with the effects applied.</returns>
 		WorldState ActOn(const WorldState& ws) const;
 
-		virtual bool IsValid(Elite::Blackboard* m_pBlackboard) { return true; }
+		virtual bool IsValid(Elite::Blackboard* pBlackboard)
+		{
+			pBlackboard->GetData("FrameTime", m_FrameTime);
+			m_ActionTimer += m_FrameTime;
+			if (m_ActionTimer >= m_ActionTimeout)
+			{
+				m_ActionTimer = 0.f;
+				std::cout << "Action [" << m_Name << "] timedout!" << std::endl;
+				return false;
+			}
+			return true;
+		}
 		virtual bool Execute(Elite::Blackboard* m_pBlackboard) { return true; }
 
 		virtual void SetPrecondition(const std::string& key, const bool value) { m_Preconditions[key] = value; }

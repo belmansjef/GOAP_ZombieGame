@@ -49,28 +49,3 @@ GOAP::WorldState GOAP::BaseAction::ActOn(const WorldState& ws) const
     }
     return tmp;
 }
-
-//bool GOAP::Action::Execute(WorldState& ws, float frameTime)
-//{
-//    if (!m_IsRunning)
-//    {
-//        std::cout << "Now executing: " << m_Name << std::endl;
-//        m_IsRunning = true;
-//    }
-//
-//    if (true)
-//    {
-//        if (OperableOn(ws))
-//        {
-//            std::cout << "Finished executing: " << m_Name << std::endl;
-//            ws = ActOn(ws);
-//            m_IsDone = true;
-//            return true;
-//        }
-//        
-//        return false;
-//    }
-//
-//    m_ActionTimer += frameTime;
-//    return m_ActionTimer < m_ActionTimeout;
-//}

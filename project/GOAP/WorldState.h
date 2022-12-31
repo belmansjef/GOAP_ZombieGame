@@ -60,7 +60,7 @@ namespace GOAP
 	public:
 		Goal_FleePurgezone() : WorldState("Flee purgezone", 1000)
 		{
-			SetVariable("target_in_range", true);
+			SetVariable("inside_purgezone", false);
 		};
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
@@ -142,6 +142,17 @@ namespace GOAP
 		Goal_EatFood() : WorldState("Eat Food", 120)
 		{
 			SetVariable("food_in_inventory", false);
+		}
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
+
+	struct Goal_DestroyGarbage final : WorldState
+	{
+	public:
+		Goal_DestroyGarbage() : WorldState("Destroy Garbage", 115)
+		{
+			SetVariable("garbage_destroyed",	true);
 		}
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;

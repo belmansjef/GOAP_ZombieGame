@@ -40,8 +40,10 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_pActions.push_back(new GOAP::Action_Heal);
 	m_pActions.push_back(new GOAP::Action_SearchEnemy);
 	m_pActions.push_back(new GOAP::Action_KillEnemy_Pistol);
-	m_pActions.push_back(new GOAP::Action_KillEnemy_Shotgun);
+	// m_pActions.push_back(new GOAP::Action_KillEnemy_Shotgun);
 	m_pActions.push_back(new GOAP::Action_FleeToSafety);
+	m_pActions.push_back(new GOAP::Action_FleePurgezone);
+	m_pActions.push_back(new GOAP::Action_DestroyGarbage);
 
 	// Initial world state
 	m_WorldState.SetVariable("target_in_range",		false);
@@ -50,17 +52,19 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_WorldState.SetVariable("pistol_aquired",		false);
 	m_WorldState.SetVariable("pistol_in_inventory", false);
 	m_WorldState.SetVariable("shotgun_aquired",		false);
-	m_WorldState.SetVariable("shotgun_in_inventory", false);
+	m_WorldState.SetVariable("shotgun_in_inventory",false);
 	m_WorldState.SetVariable("medkit_aquired",		false);
 	m_WorldState.SetVariable("medkit_in_inventory", false);
 	m_WorldState.SetVariable("low_health",			false);
 	m_WorldState.SetVariable("food_aquired",		false);
 	m_WorldState.SetVariable("food_in_inventory",	false);
 	m_WorldState.SetVariable("low_hunger",			false);
-	m_WorldState.SetVariable("wandering",			false);
+	m_WorldState.SetVariable("garbage_aquired",		false);
+	m_WorldState.SetVariable("garbage_destroyed",	false);
 	m_WorldState.SetVariable("enemy_aquired",		false);
 	m_WorldState.SetVariable("in_danger",			false);
 	m_WorldState.SetVariable("house_aquired",		false);
+	m_WorldState.SetVariable("wandering",			false);
 
 	m_pBlackboard = CreateBlackboard();
 
@@ -74,6 +78,7 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_pGoals.push_back(new GOAP::Goal_EnterHouse);
 	m_pGoals.push_back(new GOAP::Goal_EliminateThreat);
 	m_pGoals.push_back(new GOAP::Goal_Wander);
+	m_pGoals.push_back(new GOAP::Goal_DestroyGarbage);
 }
 
 //Called only once
@@ -92,7 +97,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 {
 	params.AutoFollowCam = true; //Automatically follow the AI? (Default = true)
 	params.RenderUI = true; //Render the IMGUI Panel? (Default = true)
-	params.SpawnEnemies = true; //Do you want to spawn enemies? (Default = true)
+	params.SpawnEnemies = false; //Do you want to spawn enemies? (Default = true)
 	params.EnemyCount = 20; //How many enemies? (Default = 20)
 	params.GodMode = false; //GodMode > You can't die, can be useful to inspect certain behaviors (Default = false)
 	params.LevelFile = "GameLevel.gppl";
@@ -104,7 +109,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.SpawnPurgeZonesOnMiddleClick = true;
 	params.PrintDebugMessages = true;
 	params.ShowDebugItemNames = true;
-	params.Seed = 70;
+	params.Seed = 1;
 }
 
 //Only Active in DEBUG Mode
@@ -227,7 +232,7 @@ void Plugin::GetNewHousesInFOV()
 			if (it == m_pAquiredHouses->end())
 			{
 				m_pAquiredHouses->push_back(reinterpret_cast<HouseInfo_Extended&>(hi));
-				m_pAquiredHouses->back().TimeSinceLastVisit = m_pAquiredHouses->back().ReactivationTime = 120.f;
+				m_pAquiredHouses->back().TimeSinceLastVisit = m_pAquiredHouses->back().ReactivationTime = 240.f;
 			}
 			continue;
 		}
@@ -390,7 +395,13 @@ bool Plugin::ExecutePlan()
 
 	// There are still actions in the plan, execute the first action in line
 	GOAP::BaseAction* currentAction = m_pPlan.back();
-	if (currentAction->IsValid(m_pBlackboard) && currentAction->Execute(m_pBlackboard))
+	if (!currentAction->IsValid(m_pBlackboard))
+	{
+		m_CurrentGoal = GetHighestPriorityGoal();
+		TryFindPlan(m_WorldState, *m_CurrentGoal, m_pActions);
+		return true;
+	}
+	else if(currentAction->Execute(m_pBlackboard))
 	{
 		std::cout << "Finished excecuting " << currentAction->GetName() << std::endl;
 		m_pPlan.pop_back();
@@ -415,28 +426,32 @@ GOAP::WorldState* Plugin::GetHighestPriorityGoal()
 bool Plugin::CheckForPurgeZone()
 {
 	EntityInfo ei{};
+	Elite::Vector2 combinedDir{Elite::ZeroVector2};
 	for (int i = 0;; ++i)
 	{
 		if (m_pInterface->Fov_GetEntityByIndex(i, ei))
 		{
 			if (ei.Type == eEntityType::PURGEZONE)
 			{
-				PurgeZoneInfo oldPurgeZone = m_PurgeZoneInFov;
 				m_pInterface->PurgeZone_GetInfo(ei, m_PurgeZoneInFov);
 				Elite::Vector2 dir_vector = m_pInterface->Agent_GetInfo().Position - m_PurgeZoneInFov.Center;
-				if (dir_vector.MagnitudeSquared() <= m_PurgeZoneInFov.Radius * m_PurgeZoneInFov.Radius || oldPurgeZone != m_PurgeZoneInFov)
+				if (dir_vector.MagnitudeSquared() <= m_PurgeZoneInFov.Radius * m_PurgeZoneInFov.Radius)
 				{
-					m_Target = m_PurgeZoneInFov.Center + dir_vector.GetNormalized() * (m_PurgeZoneInFov.Radius + 10.f);
+					combinedDir += dir_vector;
 					m_WorldState.SetVariable("inside_purgezone", true);
 				}
-				return true;
 			}
 			continue;
 		}
 		break;
 	}
 
-	m_WorldState.SetVariable("inside_purgezone", false);
+	if (combinedDir != Elite::ZeroVector2)
+	{
+		m_Target = m_PurgeZoneInFov.Center + combinedDir.GetNormalized() * (m_PurgeZoneInFov.Radius * 1.5f);
+		std::cout << "Target at: " << m_Target << std::endl;
+		return true;
+	}
 	return false;
 }
 

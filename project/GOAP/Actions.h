@@ -110,6 +110,22 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 	};
 
+	class Action_DestroyGarbage final : public BaseAction
+	{
+	public:
+		Action_DestroyGarbage();
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
+		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
+
+	private:
+		const float m_AngleError{ 0.75f };
+
+		ItemInfo m_TargetItem;
+		std::vector<ItemInfo>* m_pGarbage;
+		SteeringPlugin_Output* m_pSteering;
+	};
+
 	class Action_SearchEnemy final : public BaseAction
 	{
 	public:
@@ -133,7 +149,7 @@ namespace GOAP
 
 	private:
 		const float m_AngleError{ 0.01f };
-		const float m_ShotCooldown{ 0.3f };
+		const float m_ShotCooldown{ 0.05f };
 		float m_LastShotTimer{};
 
 		UINT m_InventorySlot;
@@ -152,7 +168,7 @@ namespace GOAP
 
 	private:
 		const float m_AngleError{ 2.f };
-		const float m_ShotCooldown{ 0.3f };
+		const float m_ShotCooldown{ 0.05f };
 		float m_LastShotTimer{};
 
 		UINT m_InventorySlot;
@@ -171,5 +187,17 @@ namespace GOAP
 	private:
 		SteeringPlugin_Output* m_pSteering;
 		std::vector<HouseInfo_Extended>* m_pHouses;
+	};
+
+	class Action_FleePurgezone final : public BaseAction
+	{
+	public:
+		Action_FleePurgezone();
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
+		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
+
+	private:
+		SteeringPlugin_Output* m_pSteering;
 	};
 }

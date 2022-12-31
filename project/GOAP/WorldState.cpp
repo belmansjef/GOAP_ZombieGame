@@ -171,6 +171,18 @@ bool GOAP::Goal_EatFood::IsValid(Elite::Blackboard* pBlackboard) const
     return (ws->GetVariable("food_in_inventory") && ws->GetVariable("low_hunger")) || ws->GetVariable("food_aquired");
 }
 
+bool GOAP::Goal_DestroyGarbage::IsValid(Elite::Blackboard* pBlackboard) const
+{
+    std::vector<ItemInfo>* garbage{ nullptr };
+    if (!pBlackboard->GetData("Garbage", garbage) || garbage == nullptr || garbage->empty()) return false;
+    if (!pBlackboard->ChangeData("Target", garbage->back().Location)) return false;
+
+    IExamInterface* pInterface;
+    if (!pBlackboard->GetData("Interface", pInterface) || pInterface == nullptr) return false;
+
+    return true;
+}
+
 bool GOAP::Goal_EnterHouse::IsValid(Elite::Blackboard* pBlackboard) const
 {
     std::vector<HouseInfo_Extended>* houses;
@@ -179,16 +191,20 @@ bool GOAP::Goal_EnterHouse::IsValid(Elite::Blackboard* pBlackboard) const
     IExamInterface* pInterface;
     if (!pBlackboard->GetData("Interface", pInterface) || pInterface == nullptr) return false;
 
-    float mostRecentDiscoverTime{INFINITY};
+    AgentInfo agentInfo;
+    if (!pBlackboard->GetData("AgentInfo", agentInfo)) return false;
+
+    float closest {INFINITY};
     for (auto& house : *houses)
     {
-        if (!house.HasRecentlyVisited() && mostRecentDiscoverTime > house.TimeSinceLastVisit)
+        const float dist{ house.Location.DistanceSquared(agentInfo.Position) };
+        if (!house.HasRecentlyVisited() && dist < closest)
         {
-            mostRecentDiscoverTime = house.TimeSinceLastVisit;
+            closest = dist;
             if (!pBlackboard->ChangeData("Target", house.Location)) return false;
         }
     }
 
-    return mostRecentDiscoverTime < INFINITY;
+    return closest < INFINITY;
 }
 #pragma endregion // Goals
