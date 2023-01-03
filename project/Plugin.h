@@ -1,4 +1,6 @@
 #pragma once
+#include <queue>
+
 #include "IExamPlugin.h"
 #include "Exam_HelperStructs.h"
 
@@ -6,6 +8,7 @@
 #include "GOAP/WorldState.h"
 #include "GOAP/BaseAction.h"
 #include "GOAP/Planner.h"
+#include "FSM.h"
 
 // Space Partitioning
 #include "SpacePartitioning.h"
@@ -44,8 +47,6 @@ private:
 	float m_AngSpeed = 0.f; //Demo purpose
 
 	// World Info
-	UINT m_InventorySlot = 0;
-	UINT m_ItemsInInventory = 0;
 	Elite::Vector2 m_WorldCenter;
 	Elite::Vector2 m_WorldDimensions;
 	std::vector<Elite::Vector2> m_WorldBoundaries;
@@ -77,19 +78,23 @@ private:
 	std::vector<GOAP::WorldState*> m_pGoals;
 	GOAP::WorldState* m_CurrentGoal;
 	GOAP::Planner m_ASPlanner;
+
+	GOAP::FSM m_FSM;
+	GOAP::FSMState m_IdleState;
+	GOAP::FSMState m_MoveToState;
+	GOAP::FSMState m_ExecuteActionState;
 	
 	Elite::Blackboard* m_pBlackboard;
 	Elite::Blackboard* CreateBlackboard();
 
-	bool TryFindPlan(const GOAP::WorldState& ws, const GOAP::WorldState& goal, std::vector<GOAP::BaseAction*>& actions);
-	bool ExecutePlan();
 	GOAP::WorldState* GetHighestPriorityGoal();
-
+	bool MoveAgent(GOAP::BaseAction* pAction);
+	
 	// Space Partitioning
 	CellSpace m_WorldGrid;
 
 	// Steering
-	SteeringPlugin_Output m_steering;
+	SteeringPlugin_Output m_Steering;
 
 	// Helpers
 	bool CheckForPurgeZone();

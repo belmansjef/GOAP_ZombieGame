@@ -9,6 +9,7 @@
     <ClCompile Include="GOAP\Planner.cpp" />
     <ClCompile Include="GOAP\Actions.cpp" />
     <ClCompile Include="SpacePartitioning.cpp" />
+    <ClCompile Include="FSM.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Plugin.h" />
@@ -20,5 +21,6 @@
     <ClInclude Include="GOAP\Data\EBlackboard.h" />
     <ClInclude Include="GOAP\Actions.h" />
     <ClInclude Include="SpacePartitioning.h" />
+    <ClInclude Include="FSM.h" />
   </ItemGroup>
 </Project>

@@ -181,6 +181,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="FSM.h" />
     <ClInclude Include="GOAP\Actions.h" />
     <ClInclude Include="GOAP\Data\EBlackboard.h" />
     <ClInclude Include="GOAP\BaseAction.h" />
@@ -192,6 +193,7 @@
     <ClInclude Include="GOAP\WorldState.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FSM.cpp" />
     <ClCompile Include="GOAP\Actions.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../stdafx.h</PrecompiledHeaderFile>

@@ -78,30 +78,6 @@ Cell CellSpace::GetNextCellExpandingSquare()
 			col++;
 		}
 
-		if (size == 7)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row--;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col++;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row++;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col--;
-		}
-
 		// up
 		for (int i = 0; i < size; i++)
 		{
@@ -110,30 +86,6 @@ Cell CellSpace::GetNextCellExpandingSquare()
 				return m_Cells[row * m_NrOfCols + col];
 			}
 			row++;
-		}
-
-		if (size == 7)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col++;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row++;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col--;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row--;
 		}
 
 		// left
@@ -146,30 +98,6 @@ Cell CellSpace::GetNextCellExpandingSquare()
 			col--;
 		}
 
-		if (size <= 7)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row++;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col--;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row--;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col++;
-		}
-
 		// down
 		for (int i = 0; i < size + 3; i++)
 		{
@@ -179,32 +107,7 @@ Cell CellSpace::GetNextCellExpandingSquare()
 			}
 			row--;
 		}
-
-		if (size <= 7)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col--;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row--;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col++;
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row++;
-		}
-
-		if (row == m_NrOfRows && col == 0) return m_Cells[0];
+		if (row <=0 || row > m_NrOfRows - 1 || col < 0 || col > m_NrOfCols - 1) return m_Cells[m_NrOfRows / 2 * m_NrOfCols + m_NrOfCols / 2];
 	}
 
 	return m_Cells[m_NrOfRows / 2 * m_NrOfCols + m_NrOfCols / 2];

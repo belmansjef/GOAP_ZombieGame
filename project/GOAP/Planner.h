@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
+class Blackboard;
+
 namespace GOAP
 {
 	class Planner final
@@ -19,7 +21,7 @@ namespace GOAP
 		void PrintOpenList() const;
 		void PrintClosedList() const;
 
-		std::vector<GOAP::BaseAction*> FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<BaseAction*>& actions);
+		std::vector<GOAP::BaseAction*> FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<BaseAction*>& actions, Elite::Blackboard* pBlackboard);
 
 	private:
 		std::vector<Node> m_OpenList{}; // A* open list

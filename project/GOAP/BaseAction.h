@@ -5,7 +5,7 @@
 #include <functional>
 #include "Data/EBlackboard.h"
 #include "Exam_HelperStructs.h"
-#include "../SpacePartitioning.h"
+#include "../stdafx.h"
 
 class IExamInterface;
 
@@ -17,7 +17,7 @@ namespace GOAP
 	{
 	public:
 		BaseAction() = default;
-		BaseAction(const std::string& _name, const int _cost, float actionTimeout = 20.f);
+		BaseAction(const std::string& _name, const int _cost);
 		virtual ~BaseAction();
 
 		/// <summary>
@@ -36,39 +36,27 @@ namespace GOAP
 		/// <returns>A copy of the supplied WorldState, with the effects applied.</returns>
 		WorldState ActOn(const WorldState& ws) const;
 
-		virtual bool IsValid(Elite::Blackboard* pBlackboard)
-		{
-			pBlackboard->GetData("FrameTime", m_FrameTime);
-			m_ActionTimer += m_FrameTime;
-			if (m_ActionTimer >= m_ActionTimeout)
-			{
-				m_ActionTimer = 0.f;
-				std::cout << "Action [" << m_Name << "] timed-out!" << std::endl;
-				return false;
-			}
-			return true;
-		}
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) { return true; }
 		virtual bool Execute(Elite::Blackboard* m_pBlackboard) { return true; }
+
+		virtual void Reset() { SAFE_DELETE(m_pTarget); m_InRange = false; }
+		virtual bool RequiresInRange() { return true; }
+		void SetInRange(bool inRange) { m_InRange = inRange; }
 
 		virtual void SetPrecondition(const std::string& key, const bool value) { m_Preconditions[key] = value; }
 		virtual void SetEffect(const std::string& key, const bool value) { m_Effects[key] = value; }
-		virtual void SetActionTimeout(float timeout){ m_ActionTimeout = timeout; }
-		void SetTarget(const Elite::Vector2& target) { m_Target = target; }
 
 		virtual int GetCost() const { return m_Cost; }
 		std::string GetName() const { return m_Name; }
+		EntityInfo* GetTarget() const { return m_pTarget; }
+		bool IsInRange() const { return m_InRange; }
+		virtual bool IsDone() { return true; }
 
 	protected:
 		int m_Cost;
+		bool m_InRange;
 		std::string m_Name;
-		float m_FrameTime;
-		AgentInfo m_AgentInfo;
-		Elite::Vector2 m_Target;
-		WorldState* m_pWorldState;
-		IExamInterface* m_pInterface;
-		SteeringPlugin_Output* m_pSteering;
-		std::vector<EntityInfo> m_Entities;
-		std::vector<Elite::Vector2>* m_EntityPositions;
+		EntityInfo* m_pTarget;
 		
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.
@@ -77,8 +65,5 @@ namespace GOAP
 		// Effects are the result of this action being taken.
 		// They most likely change certain vars in the current WorldState.
 		std::unordered_map<std::string, bool> m_Effects;
-
-		float m_ActionTimeout;
-		float m_ActionTimer;
 	};
 }

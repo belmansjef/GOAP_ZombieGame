@@ -52,7 +52,7 @@ void GOAP::Planner::PrintClosedList() const
     }
 }
 
-std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<BaseAction*>& actions)
+std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<BaseAction*>& actions, Elite::Blackboard* pBlackboard)
 {
     if (start.MeetsGoal(goal))
     {
@@ -60,10 +60,22 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
         return std::vector<BaseAction*>();
     }
 
-    // Feasible we'd re-use a planner, so clear out the prior results
+    // Get all actions that are valid at time of planning
+    std::vector<BaseAction*> usable_actions;
+    for (auto& action : actions)
+    {
+        action->Reset();
+        if (action->IsValid(pBlackboard))
+        {
+            usable_actions.push_back(action);
+        }
+    }
+
+    // We re-use the planner, so clear out the lists filled with previous results
     m_OpenList.clear();
     m_ClosedList.clear();
 
+    // Create the first node and push it to the openlist, the list of yet to be checked actions
     Node starting_node{ start, 0, CalculateHeuristic(start, goal), 0, nullptr};
     m_OpenList.push_back(std::move(starting_node));
 
@@ -81,36 +93,38 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
             {
                 plan.emplace_back(current.action);
                 
-                // Search node on open list
+                // Search parent node on open list
                 auto it = std::find_if(begin(m_OpenList), end(m_OpenList), [&](const Node& n) { return n.id == current.parent_id; });
 
-                // Node is not on the open list, search on closed list
+                // Parent node is not on the open list, search on closed list
                 if (it == end(m_OpenList))
                 {
                     it = std::find_if(begin(m_ClosedList), end(m_ClosedList), [&](const Node& n) { return n.id == current.parent_id; });
                 }
                 current = *it;
-            } while (current.parent_id != 0);
+            } while (current.parent_id != 0); // Walk back through the action sequence until we get to the start node
 
             return plan;
         }
 
-        // Check each node REACHABLE from current -- in other words, where can we go from here?
-        for (const auto potential_action : actions)
+        // We have not met our goal state yet.
+        // Check each node REACHABLE from the current node -- in other words, which action can we perform from here?
+        for (const auto potential_action : usable_actions)
         {
+            // This action gets us closer to our goal state, this means we can use it to formulate our plan
             if (potential_action->OperableOn(current.ws))
             {
                 WorldState outcome = potential_action->ActOn(current.ws);
 
-                // Skip if already closed
+                // Skip if already closed -- in other words, we've already got an action that gets us here
                 if (IsMemberOfClosed(outcome)) continue;
 
                 // Look for a Node with this WorldState on the open list.
-                auto p_outcome_node = IsMemberOfOpen(outcome);
-                if (p_outcome_node == end(m_OpenList))
+                auto potential_outcome_node = IsMemberOfOpen(outcome);
+                if (potential_outcome_node == end(m_OpenList))
                 { 
-                    // not a member of open list
-                    // Make a new node, with current as its parent, recording G & H
+                    // Not a member of open list
+                    // Make a new node, with current node as its parent, recording G & H
                     Node newNode(outcome, current.g + potential_action->GetCost(), CalculateHeuristic(outcome, goal), current.id, potential_action);
                     // Add it to the open list (maintaining sort-order therein)
                     AddToOpenList(std::move(newNode));
@@ -119,15 +133,15 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
                 {
                     // already a member of the open list
                     // check if the current G is better than the recorded G
-                    if (current.g + potential_action->GetCost() < p_outcome_node->g)
+                    if (current.g + potential_action->GetCost() < potential_outcome_node->g)
                     {    
-                        p_outcome_node->parent_id = current.id; // make current its parent
-                        p_outcome_node->g = current.g + potential_action->GetCost(); // recalc G & H
-                        p_outcome_node->h = CalculateHeuristic(outcome, goal);
-                        p_outcome_node->action = potential_action;
+                        potential_outcome_node->parent_id = current.id; // make current its parent
+                        potential_outcome_node->g = current.g + potential_action->GetCost(); // recalc G & H
+                        potential_outcome_node->h = CalculateHeuristic(outcome, goal);
+                        potential_outcome_node->action = potential_action;
 
                         // resort open list to account for the new F
-                        // sorting likely invalidates the p_outcome_node iterator, but we don't need it anymore
+                        // sorting likely invalidates the potential_outcome_node iterator, but we don't need it anymore
                         std::sort(begin(m_OpenList), end(m_OpenList));
                     }
                 }

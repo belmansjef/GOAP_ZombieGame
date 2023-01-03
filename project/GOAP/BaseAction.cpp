@@ -5,17 +5,11 @@
 #include <iostream>
 
 
-GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost, float actionTimeout)
+GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost)
     : m_Name(_name)
     , m_Cost(_cost)
-    , m_FrameTime(0.f)
-    , m_Target(Elite::Vector2{})
-    , m_AgentInfo(AgentInfo{})
-    , m_pInterface(nullptr)
-    , m_ActionTimeout(actionTimeout)
-    , m_ActionTimer(0.f)
-    , m_pWorldState(nullptr)
-    , m_pSteering(nullptr)
+    , m_InRange(false)
+    , m_pTarget(new EntityInfo())
 {
 }
 
@@ -23,6 +17,11 @@ GOAP::BaseAction::~BaseAction()
 {
 }
 
+/// <summary>
+/// Checks if this action can fullfill any of the WorldState goals
+/// </summary>
+/// <param name="ws">The WorldState to check if we satisfy</param>
+/// <returns></returns>
 bool GOAP::BaseAction::OperableOn(const WorldState& ws) const
 {
     for (const auto& preconditions : m_Preconditions)
@@ -33,8 +32,11 @@ bool GOAP::BaseAction::OperableOn(const WorldState& ws) const
             {
                 return false;
             }
-        } catch (const std::out_of_range&)
+        }
+        // We have more preconditions then the goal WorldState has goals
+        catch (const std::out_of_range&)
         {
+            std::cout << "Goal WorldState has less goals than action [" << m_Name << "] has preconditions!" << std::endl;
             return false;
         }
     }

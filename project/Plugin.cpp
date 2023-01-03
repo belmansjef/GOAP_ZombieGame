@@ -34,7 +34,7 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	};
 
 	// Space Partitioning
-	m_WorldGrid = std::move(CellSpace(m_WorldDimensions.x / 1.5f, m_WorldDimensions.y / 1.5f, 14, 14));
+	m_WorldGrid = std::move(CellSpace(m_WorldDimensions.x, m_WorldDimensions.y, 32, 32));
 
 	// Entities
 	m_pAquiredHouses		= new std::vector<HouseInfo_Extended>;
@@ -46,66 +46,82 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_pAquiredGarbage		= new std::vector<Elite::Vector2>;
 
 	// GOAP Actions
-	m_pActions.push_back(new GOAP::Action_MoveTo);
-	m_pActions.push_back(new GOAP::Action_FaceTarget);
-	m_pActions.push_back(new GOAP::Action_GrabPistol);
-	m_pActions.push_back(new GOAP::Action_GrabShotgun);
-	m_pActions.push_back(new GOAP::Action_GrabMedkit);
-	m_pActions.push_back(new GOAP::Action_GrabFood);
-	m_pActions.push_back(new GOAP::Action_DropPistol);
-	m_pActions.push_back(new GOAP::Action_DropShotgun);
-	m_pActions.push_back(new GOAP::Action_Wander);
-	m_pActions.push_back(new GOAP::Action_EatFood);
-	m_pActions.push_back(new GOAP::Action_Heal);
-	m_pActions.push_back(new GOAP::Action_SearchEnemy);
-	m_pActions.push_back(new GOAP::Action_KillEnemy_Pistol);
-	// m_pActions.push_back(new GOAP::Action_KillEnemy_Shotgun);
-	m_pActions.push_back(new GOAP::Action_FleeToSafety);
-	m_pActions.push_back(new GOAP::Action_FleePurgezone);
-	m_pActions.push_back(new GOAP::Action_DestroyGarbage);
-	m_pActions.push_back(new GOAP::Action_SearchHouse);
-	m_pActions.push_back(new GOAP::Action_SearchArea);
+	m_pActions.push_back(new GOAP::Action_GotoClosestCell);
 
 	// Initial world state
-	m_WorldState.SetVariable("target_in_range",		false);
-	m_WorldState.SetVariable("item_collected",		false);
-	m_WorldState.SetVariable("inside_purgezone",	false);
-	m_WorldState.SetVariable("pistol_aquired",		false);
-	m_WorldState.SetVariable("pistol_nearby",		false);
-	m_WorldState.SetVariable("pistol_in_inventory", false);
-	m_WorldState.SetVariable("shotgun_aquired",		false);
-	m_WorldState.SetVariable("shotgun_nearby",		false);
-	m_WorldState.SetVariable("shotgun_in_inventory",false);
-	m_WorldState.SetVariable("medkit_aquired",		false);
-	m_WorldState.SetVariable("medkit_nearby",		false);
-	m_WorldState.SetVariable("medkit_in_inventory", false);
-	m_WorldState.SetVariable("low_health",			false);
-	m_WorldState.SetVariable("food_aquired",		false);
-	m_WorldState.SetVariable("food_nearby",			false);
-	m_WorldState.SetVariable("food_in_inventory",	false);
-	m_WorldState.SetVariable("food_inventory_full",	false);
-	m_WorldState.SetVariable("low_hunger",			false);
-	m_WorldState.SetVariable("garbage_aquired",		false);
-	m_WorldState.SetVariable("garbage_destroyed",	false);
-	m_WorldState.SetVariable("enemy_aquired",		false);
-	m_WorldState.SetVariable("in_danger",			false);
-	m_WorldState.SetVariable("house_aquired",		false);
-	m_WorldState.SetVariable("wandering",			false);
-
+	m_WorldState.SetVariable("is_world_explored",	false);
+	m_WorldState.SetVariable("has_explored",		false);
 	m_pBlackboard = CreateBlackboard();
-
-	m_pGoals.push_back(new GOAP::Goal_FleePurgezone);
-	m_pGoals.push_back(new GOAP::Goal_CollectPistol);
-	m_pGoals.push_back(new GOAP::Goal_CollectShotgun);
-	m_pGoals.push_back(new GOAP::Goal_CollectMedkit);
-	m_pGoals.push_back(new GOAP::Goal_CollectFood);
-	m_pGoals.push_back(new GOAP::Goal_EatFood);
-	m_pGoals.push_back(new GOAP::Goal_Heal);
-	m_pGoals.push_back(new GOAP::Goal_SearchHouse);
-	m_pGoals.push_back(new GOAP::Goal_EliminateThreat);
-	m_pGoals.push_back(new GOAP::Goal_Wander);
+	
+	// GOAP Goals
 	m_pGoals.push_back(new GOAP::Goal_ExploreWorld);
-	m_pGoals.push_back(new GOAP::Goal_DestroyGarbage);
+
+	// FSM States
+	m_IdleState = GOAP::FSMState([&](GOAP::FSM* pFSM, Elite::Blackboard* pBlackboard)
+		{
+			m_pPlan = m_ASPlanner.FormulatePlan(m_WorldState, *GetHighestPriorityGoal(), m_pActions, m_pBlackboard);
+			if (!m_pPlan.empty())
+			{
+				pFSM->PopState();
+				pFSM->PushState(m_ExecuteActionState);
+			}
+			else
+			{
+				pFSM->PopState();
+				pFSM->PushState(m_IdleState);
+			}
+		});
+
+	m_MoveToState = GOAP::FSMState([&](GOAP::FSM* pFSM, Elite::Blackboard* pBlackboard)
+		{
+			GOAP::BaseAction* pAction = m_pPlan.back();
+			if (pAction->RequiresInRange() && pAction->GetTarget() == nullptr)
+			{
+				pFSM->PopState();
+				pFSM->PopState();
+				pFSM->PushState(m_IdleState);
+				return;
+			}
+
+			if (MoveAgent(pAction))
+			{
+				pFSM->PopState();
+			}
+		});
+
+	m_ExecuteActionState = GOAP::FSMState([&](GOAP::FSM* pFSM, Elite::Blackboard* pBlackboard)
+		{
+			// Action is done, move to next action
+			GOAP::BaseAction* pAction = m_pPlan.back();
+			if (pAction->IsDone())
+			{
+				m_pPlan.pop_back();
+				if (m_pPlan.empty())
+				{
+					pFSM->PopState();
+					pFSM->PushState(m_IdleState);
+					return;
+				}
+			}
+
+			pAction = m_pPlan.back();
+			bool inRange = pAction->RequiresInRange() ? pAction->IsInRange() : true;
+			if (inRange)
+			{
+				// Action returns false if it fails -- If it fails, abort plan and get new one
+				if (!pAction->Execute(pBlackboard))
+				{
+					pFSM->PopState();
+					pFSM->PushState(m_IdleState);
+				}
+			}
+			else
+			{
+				pFSM->PushState(m_MoveToState);
+			}
+		});
+
+	m_FSM.PushState(m_IdleState);
 }
 
 //Called only once
@@ -124,7 +140,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 {
 	params.AutoFollowCam = true; //Automatically follow the AI? (Default = true)
 	params.RenderUI = true; //Render the IMGUI Panel? (Default = true)
-	params.SpawnEnemies = true; //Do you want to spawn enemies? (Default = true)
+	params.SpawnEnemies = false; //Do you want to spawn enemies? (Default = true)
 	params.EnemyCount = 20; //How many enemies? (Default = 20)
 	params.GodMode = true; //GodMode > You can't die, can be useful to inspect certain behaviors (Default = false)
 	params.LevelFile = "GameLevel.gppl";
@@ -136,7 +152,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.SpawnPurgeZonesOnMiddleClick = true;
 	params.PrintDebugMessages = true;
 	params.ShowDebugItemNames = true;
-	params.Seed = 64;
+	params.Seed = 3;
 }
 
 //Only Active in DEBUG Mode
@@ -184,22 +200,6 @@ void Plugin::Update(float dt)
 	{
 		m_pInterface->RequestShutdown();
 	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_KP_Minus))
-	{
-		if (m_InventorySlot > 0)
-			--m_InventorySlot;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_KP_Plus))
-	{
-		if (m_InventorySlot < 4)
-			++m_InventorySlot;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Q))
-	{
-		ItemInfo info = {};
-		m_pInterface->Inventory_GetItem(m_InventorySlot, info);
-		std::cout << (int)info.Type << std::endl;
-	}
 }
 
 //Update
@@ -229,18 +229,12 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 	// WorldState
 	m_WorldState.SetVariable("low_hunger",		m_pInterface->Agent_GetInfo().Energy <= 2.f);
 	m_WorldState.SetVariable("low_health",		m_pInterface->Agent_GetInfo().Health <= 8.f);
-	m_WorldState.SetVariable("in_danger",		m_WorldState.GetVariable("in_danger") || m_pInterface->Agent_GetInfo().WasBitten || !m_EnemiesInFOV.empty());
+	// m_WorldState.SetVariable("in_danger",		m_WorldState.GetVariable("in_danger") || m_pInterface->Agent_GetInfo().WasBitten || !m_EnemiesInFOV.empty());
 	m_WorldState.SetVariable("enemy_aquired",	!m_EnemiesInFOV.empty());
 
-	auto goal = GetHighestPriorityGoal();
-	if (m_CurrentGoal == nullptr || goal != m_CurrentGoal || empty(m_pPlan))
-	{
-		m_CurrentGoal = goal;
-		TryFindPlan(m_WorldState, *m_CurrentGoal, m_pActions);
-	}
-	else ExecutePlan();
+	m_FSM.Update(m_pBlackboard);
 
-	return m_steering;
+	return m_Steering;
 }
 
 //This function should only be used for rendering debug elements
@@ -248,31 +242,36 @@ void Plugin::Render(float dt) const
 {
 	//This Render function should only contain calls to Interface->Draw_... functions
 	m_pInterface->Draw_SolidCircle(m_Target, .7f, { 0,0 }, { 1, 0, 0 });
-	m_pInterface->Draw_Polygon(&m_WorldBoundaries[0], 4, { 1.f, 0.f, 0.f });
 
 	for (const auto& cell : m_WorldGrid.GetCells())
 	{
 		if (cell.hasVisited)
-			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, {0.f, 1.f, 0.f}, -1.f);
+			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, {0.f, 0.8f, 0.f}, -1.f);
 		else
-			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, { 1.f, 0.f, 0.f }, 0.f);
+			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, { 0.8f, 0.f, 0.f });
 	}
+
+	m_pInterface->Draw_Polygon(&m_WorldBoundaries[0], 4, { 0.f, 0.f, 0.f }, m_pInterface->NextDepthSlice());
 
 	for (const auto& pistolPos : *m_pAquiredPistols)
 	{
 		m_pInterface->Draw_Circle(pistolPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(pistolPos, 2.f,	{ 0.f, 1.f, 0.f });
 	}
 	for (const auto& shotgunPos : *m_pAquiredShotguns)
 	{
 		m_pInterface->Draw_Circle(shotgunPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(shotgunPos, 2.f,	 { 0.f, 1.f, 0.f });
 	}
 	for (const auto& medkitPos : *m_pAquiredMedkits)
 	{
 		m_pInterface->Draw_Circle(medkitPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(medkitPos, 2.f,   { 0.f, 1.f, 0.f });
 	}
 	for (const auto& foodPos : *m_pAquiredFood)
 	{
 		m_pInterface->Draw_Circle(foodPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(foodPos, 2.f,   { 0.f, 1.f, 0.f });
 	}
 
 }
@@ -460,7 +459,7 @@ Elite::Blackboard* Plugin::CreateBlackboard()
 	m_pBlackboard->AddData("AgentInfo",		AgentInfo{});
 	m_pBlackboard->AddData("InventorySlot",	0U);
 	m_pBlackboard->AddData("Target",		Elite::Vector2{});
-	m_pBlackboard->AddData("Steering",		&m_steering);
+	m_pBlackboard->AddData("Steering",		&m_Steering);
 	m_pBlackboard->AddData("Interface",		m_pInterface);
 	m_pBlackboard->AddData("CellSpace",		m_WorldGrid);
 	
@@ -482,64 +481,32 @@ Elite::Blackboard* Plugin::CreateBlackboard()
 	return m_pBlackboard;
 }
 
-bool Plugin::TryFindPlan(const GOAP::WorldState& ws, const GOAP::WorldState& goal, std::vector<GOAP::BaseAction*>& actions)
-{
-	std::cout << "Finding plan for goal [" << goal.name << "]\n";
-	try
-	{
-		m_pPlan = m_ASPlanner.FormulatePlan(ws, goal, actions);
-		if (!empty(m_pPlan))
-		{
-			std::cout << "Found a plan: ";
-			for (auto action : m_pPlan)
-			{
-				if (action != m_pPlan[0]) std::cout << " << ";
-				std::cout << action->GetName();
-			}
-			std::cout << std::endl;
-			return true;
-		}
-		return false;
-	}
-	catch (const std::exception& e)
-	{
-		std::cout << e.what() << std::endl;
-		return false;
-	}
-}
-
-bool Plugin::ExecutePlan()
-{
-	if (empty(m_pPlan)) return true;
-
-	// There are still actions in the plan, execute the first action in line
-	GOAP::BaseAction* currentAction = m_pPlan.back();
-	if (!currentAction->IsValid(m_pBlackboard))
-	{
-		m_CurrentGoal = GetHighestPriorityGoal();
-		TryFindPlan(m_WorldState, *m_CurrentGoal, m_pActions);
-		return true;
-	}
-	else if(currentAction->Execute(m_pBlackboard))
-	{
-		std::cout << "Finished excecuting " << currentAction->GetName() << std::endl;
-		m_pPlan.pop_back();
-		return empty(m_pPlan);
-	}
-	return false;
-}
-
 GOAP::WorldState* Plugin::GetHighestPriorityGoal()
 {
 	GOAP::WorldState* newGoal{};
 	for (const auto goal : m_pGoals)
 	{
-		if ((newGoal == nullptr || goal->priority > newGoal->priority) && goal->IsValid(m_pBlackboard))
+		if ((newGoal == nullptr || goal->priority > newGoal->priority) && goal->IsValid(m_WorldState))
 		{
 			newGoal = goal;
 		}
 	}
 	return newGoal;
+}
+
+bool Plugin::MoveAgent(GOAP::BaseAction* pAction)
+{
+	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
+	m_Steering.LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(pAction->GetTarget()->Location) - agentInfo.Position).GetNormalized();
+	m_Steering.LinearVelocity *= agentInfo.MaxLinearSpeed;
+
+	if (agentInfo.Position.DistanceSquared(pAction->GetTarget()->Location) <= (agentInfo.GrabRange * agentInfo.GrabRange))
+	{
+		m_Steering.LinearVelocity = Elite::ZeroVector2;
+		pAction->SetInRange(true);
+		return true;
+	}
+	return false;
 }
 
 bool Plugin::CheckForPurgeZone()
