@@ -24,6 +24,19 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	// Actions
 	m_pActions.push_back(new GOAP::Action_MoveTo);
 	m_pActions.push_back(new GOAP::Action_Wander);
+<<<<<<< Updated upstream
+=======
+	m_pActions.push_back(new GOAP::Action_EatFood);
+	m_pActions.push_back(new GOAP::Action_Heal);
+	m_pActions.push_back(new GOAP::Action_SearchEnemy);
+	m_pActions.push_back(new GOAP::Action_KillEnemy_Pistol);
+	m_pActions.push_back(new GOAP::Action_KillEnemy_Shotgun);
+	// m_pActions.push_back(new GOAP::Action_FleeToSafety);
+	m_pActions.push_back(new GOAP::Action_FleePurgezone);
+	m_pActions.push_back(new GOAP::Action_DestroyGarbage);
+	m_pActions.push_back(new GOAP::Action_SearchHouse);
+	m_pActions.push_back(new GOAP::Action_SearchArea);
+>>>>>>> Stashed changes
 
 	// Initial world state
 	m_WorldState.SetVariable("target_in_range", false);
@@ -135,12 +148,38 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 {
 	m_FrameTime = dt;
 	UpdateHouseInfo();
+<<<<<<< Updated upstream
 	GetNewEntitiesInFOV(m_AquiredEntities);
 
 	m_pBlackboard->ChangeData("Target", m_pInterface->NavMesh_GetClosestPathPoint(m_Target));
 	m_pBlackboard->ChangeData("AgentInfo", m_pInterface->Agent_GetInfo());
 	m_pBlackboard->ChangeData("Entities", m_AquiredEntities);
 	// m_pBlackboard->ChangeData("Interface", m_pInterface);
+=======
+	GetEntitiesInFOV();
+	GetNewHousesInFOV();
+	CheckForPurgeZone();
+	m_EnemiesInFOV = GetEnemiesInFOV();
+	
+	AgentInfo agent{ m_pInterface->Agent_GetInfo() };
+	m_WorldGrid.MarkCellAsVisited(agent.Position);
+	m_pBlackboard->ChangeData("Target",				m_Target);
+	m_pBlackboard->ChangeData("AgentInfo",			agent);
+	m_pBlackboard->ChangeData("FrameTime",			m_FrameTime);
+	m_pBlackboard->ChangeData("CellSpace",			m_WorldGrid);
+	m_pBlackboard->ChangeData("EnemyEntities",		m_EnemiesInFOV);
+	m_pBlackboard->ChangeData("PistolEntities",		m_PistolsInFOV);
+	m_pBlackboard->ChangeData("ShotgunEntities",	m_ShotgunsInFOV);
+	m_pBlackboard->ChangeData("MedEntities",		m_MedkitsInFOV);
+	m_pBlackboard->ChangeData("FoodEntities",		m_FoodInFOV);
+	m_pBlackboard->ChangeData("GarbageEntities",	m_GarbageInFOV);
+
+	// WorldState
+	m_WorldState.SetVariable("low_hunger",		m_pInterface->Agent_GetInfo().Energy <= 2.f);
+	m_WorldState.SetVariable("low_health",		m_pInterface->Agent_GetInfo().Health <= 2.f);
+	m_WorldState.SetVariable("in_danger",		m_WorldState.GetVariable("in_danger") || m_pInterface->Agent_GetInfo().WasBitten || !m_EnemiesInFOV.empty());
+	m_WorldState.SetVariable("enemy_aquired",	!m_EnemiesInFOV.empty());
+>>>>>>> Stashed changes
 
 	auto goal = GetHighestPriorityGoal();
 	if (m_CurrentGoal == nullptr || goal != m_CurrentGoal || empty(m_pPlan))
@@ -148,11 +187,28 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 		m_CurrentGoal = goal;
 		TryFindPlan(m_WorldState, *m_CurrentGoal, m_pActions);
 	}
+<<<<<<< Updated upstream
 	else
+=======
+	ExecutePlan();
+
+	return m_steering;
+}
+
+//This function should only be used for rendering debug elements
+void Plugin::Render(float dt) const
+{
+	//This Render function should only contain calls to Interface->Draw_... functions
+	m_pInterface->Draw_SolidCircle(m_Target, .7f, { 0,0 }, { 1, 0, 0 });
+	m_pInterface->Draw_Polygon(&m_WorldBoundaries[0], 4, { 1.f, 0.f, 0.f });
+
+	for (const auto& cell : m_WorldGrid.GetCells())
+>>>>>>> Stashed changes
 	{
 		ExecutePlan();
 	}
 
+<<<<<<< Updated upstream
 	//INVENTORY USAGE DEMO
 	//********************
 
@@ -169,10 +225,27 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 			//Slot must be empty
 			m_pInterface->Inventory_AddItem(m_InventorySlot, item);
 		}
+=======
+	for (const auto& pistolPos : *m_pAquiredPistols)
+	{
+		m_pInterface->Draw_Circle(pistolPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(pistolPos, 2.f, { 0.f, 1.f, 0.f });
+	}
+	for (const auto& shotgunPos : *m_pAquiredShotguns)
+	{
+		m_pInterface->Draw_Circle(shotgunPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(shotgunPos, 2.f, { 0.f, 1.f, 0.f });
+	}
+	for (const auto& medkitPos : *m_pAquiredMedkits)
+	{
+		m_pInterface->Draw_Circle(medkitPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(medkitPos, 2.f, { 0.f, 1.f, 0.f });
+>>>>>>> Stashed changes
 	}
 
 	if (m_UseItem)
 	{
+<<<<<<< Updated upstream
 		//Use an item (make sure there is an item at the given inventory slot)
 		m_pInterface->Inventory_UseItem(m_InventorySlot);
 	}
@@ -181,6 +254,29 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 	{
 		//Remove an item from a inventory slot
 		m_pInterface->Inventory_RemoveItem(m_InventorySlot);
+=======
+		m_pInterface->Draw_Circle(foodPos, 125.f, { 0.f, 0.f, 1.f });
+		m_pInterface->Draw_Circle(foodPos, 2.f, { 0.f, 1.f, 0.f });
+	}
+}
+
+void Plugin::GetNewHousesInFOV()
+{
+	HouseInfo hi = {};
+	for (int i = 0;; ++i)
+	{
+		if (m_pInterface->Fov_GetHouseByIndex(i, hi))
+		{
+			auto it = std::find(m_pAquiredHouses->begin(), m_pAquiredHouses->end(), hi);
+			if (it == m_pAquiredHouses->end())
+			{
+				m_pAquiredHouses->push_back(reinterpret_cast<HouseInfo_Extended&>(hi));
+				m_pAquiredHouses->back().TimeSinceLastVisit = m_pAquiredHouses->back().ReactivationTime = 600.f;
+			}
+			continue;
+		}
+		break;
+>>>>>>> Stashed changes
 	}
 
 	m_steering.RunMode = m_CanRun; //If RunMode is True > MaxLinSpd is increased for a limited time (till your stamina runs out)
@@ -325,7 +421,15 @@ void Plugin::Wander(SteeringPlugin_Output& steering)
 
 bool Plugin::CheckForPurgeZone()
 {
+<<<<<<< Updated upstream
 	for (auto& e : m_EntitiesInFov)
+=======
+	if (m_WorldState.GetVariable("medkit_in_inventory")) return false;
+
+	EntityInfo ei{};
+	Elite::Vector2 combinedDir{Elite::ZeroVector2};
+	for (int i = 0;; ++i)
+>>>>>>> Stashed changes
 	{
 		if (e.Type == eEntityType::PURGEZONE)
 		{
@@ -335,6 +439,14 @@ bool Plugin::CheckForPurgeZone()
 		}
 	}
 
+<<<<<<< Updated upstream
+=======
+	if (combinedDir != Elite::ZeroVector2)
+	{
+		m_Target = m_PurgeZoneInFov.Center + combinedDir.GetNormalized() * (m_PurgeZoneInFov.Radius * 1.5f);
+		return true;
+	}
+>>>>>>> Stashed changes
 	return false;
 }
 
