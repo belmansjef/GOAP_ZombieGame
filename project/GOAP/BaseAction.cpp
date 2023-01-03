@@ -8,13 +8,14 @@
 GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost, float actionTimeout)
     : m_Name(_name)
     , m_Cost(_cost)
+    , m_FrameTime(0.f)
     , m_Target(Elite::Vector2{})
     , m_AgentInfo(AgentInfo{})
     , m_pInterface(nullptr)
     , m_ActionTimeout(actionTimeout)
     , m_ActionTimer(0.f)
     , m_pWorldState(nullptr)
-    , m_FrameTime(0.f)
+    , m_pSteering(nullptr)
 {
 }
 

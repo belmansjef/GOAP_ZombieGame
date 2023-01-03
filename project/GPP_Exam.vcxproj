@@ -187,6 +187,7 @@
     <ClInclude Include="GOAP\Node.h" />
     <ClInclude Include="GOAP\Planner.h" />
     <ClInclude Include="Plugin.h" />
+    <ClInclude Include="SpacePartitioning.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="GOAP\WorldState.h" />
   </ItemGroup>
@@ -214,6 +215,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Plugin.cpp" />
+    <ClCompile Include="SpacePartitioning.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

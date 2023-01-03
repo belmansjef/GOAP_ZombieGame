@@ -78,6 +78,30 @@ namespace GOAP
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
 	};
 
+	struct Goal_CollectPistol final : WorldState
+	{
+	public:
+		Goal_CollectPistol() : WorldState("Collect Pistol", 925)
+		{
+			SetVariable("pistol_aquired", false);
+			SetVariable("pistol_in_inventory", true);
+		}
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
+
+	struct Goal_CollectShotgun final : WorldState
+	{
+	public:
+		Goal_CollectShotgun() : WorldState("Collect Shotgun", 920)
+		{
+			SetVariable("shotgun_aquired", false);
+			SetVariable("shotgun_in_inventory", true);
+		}
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
+
 	struct Goal_EliminateThreat final : WorldState
 	{
 	public:
@@ -88,38 +112,14 @@ namespace GOAP
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
 	};
+	
 
-	struct Goal_CollectShotgun final : WorldState
+	struct Goal_EatFood final : WorldState
 	{
 	public:
-		Goal_CollectShotgun() : WorldState("Collect Shotgun", 155)
+		Goal_EatFood() : WorldState("Eat Food", 135)
 		{
-			SetVariable("shotgun_aquired", false);
-			SetVariable("shotgun_in_inventory", true);
-		}
-
-		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
-	};
-
-	struct Goal_CollectPistol final : WorldState
-	{
-	public:
-		Goal_CollectPistol() : WorldState("Collect Pistol", 145)
-		{
-			SetVariable("pistol_aquired", false);
-			SetVariable("pistol_in_inventory", true);
-		}
-
-		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
-	};
-
-	struct Goal_CollectMedkit final : WorldState
-	{
-	public:
-		Goal_CollectMedkit() : WorldState("Collect Medkit", 135)
-		{
-			SetVariable("medkit_aquired", false);
-			SetVariable("medkit_in_inventory", true);
+			SetVariable("low_hunger", false);
 		}
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
@@ -128,20 +128,21 @@ namespace GOAP
 	struct Goal_CollectFood final : WorldState
 	{
 	public:
-		Goal_CollectFood() : WorldState("Collect Food", 125)
+		Goal_CollectFood() : WorldState("Collect Food", 130)
 		{
-			SetVariable("food_in_inventory", true);
+			SetVariable("food_aquired", false);
 		}
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
 	};
 
-	struct Goal_EatFood final : WorldState
+	struct Goal_CollectMedkit final : WorldState
 	{
 	public:
-		Goal_EatFood() : WorldState("Eat Food", 120)
+		Goal_CollectMedkit() : WorldState("Collect Medkit", 125)
 		{
-			SetVariable("food_in_inventory", false);
+			SetVariable("medkit_aquired", false);
+			SetVariable("medkit_in_inventory", true);
 		}
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
@@ -158,17 +159,38 @@ namespace GOAP
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
 	};
 
-	struct Goal_EnterHouse final : WorldState
+	struct Goal_SearchHouse final : WorldState
 	{
 	public:
-		Goal_EnterHouse() : WorldState("Enter House", 100)
+		Goal_SearchHouse() : WorldState("Search House", 100)
 		{
-			SetVariable("target_in_range", true);
+			SetVariable("house_searched", true);
 		}
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
 	};
 
+	struct Goal_SearchArea final : WorldState
+	{
+	public:
+		Goal_SearchArea() : WorldState("Search Area", 85)
+		{
+			SetVariable("area_searched", true);
+		}
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
+
+	struct Goal_ExploreWorld final : WorldState
+	{
+	public:
+		Goal_ExploreWorld() : WorldState("Explore World", 10)
+		{
+			SetVariable("target_in_range", true);
+		};
+
+		virtual bool IsValid(Elite::Blackboard* pBlackboard) const override;
+	};
 
 	struct Goal_Wander final : WorldState
 	{

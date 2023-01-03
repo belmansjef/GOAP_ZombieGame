@@ -7,9 +7,11 @@
 #include "GOAP/BaseAction.h"
 #include "GOAP/Planner.h"
 
+// Space Partitioning
+#include "SpacePartitioning.h"
+
 class IBaseInterface;
 class IExamInterface;
-
 
 class Plugin final : public IExamPlugin
 {
@@ -31,7 +33,7 @@ private:
 	//Interface, used to request data from/perform actions with the AI Framework
 	IExamInterface* m_pInterface = nullptr;
 	void GetNewHousesInFOV();
-	void GetNewEntitiesInFOV();
+	void GetEntitiesInFOV();
 	std::vector<EnemyInfo> GetEnemiesInFOV();
 
 	Elite::Vector2 m_Target = {};
@@ -44,20 +46,26 @@ private:
 	// World Info
 	UINT m_InventorySlot = 0;
 	UINT m_ItemsInInventory = 0;
+	Elite::Vector2 m_WorldCenter;
+	Elite::Vector2 m_WorldDimensions;
+	std::vector<Elite::Vector2> m_WorldBoundaries;
 
 	// Aquired entities
-	std::vector<HouseInfo_Extended>* m_pAquiredHouses;
 	std::vector<EntityInfo>* m_pAquiredEntities;
-	std::vector<EnemyInfo> m_EnemiesInFOV;
-	std::vector<ItemInfo>* m_pAquiredPistols;
-	std::vector<ItemInfo>* m_pAquiredShotguns;
-	std::vector<ItemInfo>* m_pAquiredMedkits;
-	std::vector<ItemInfo>* m_pAquiredFood;
-	std::vector<ItemInfo>* m_pAquiredGarbage;
+	std::vector<Elite::Vector2>* m_pAquiredPistols;
+	std::vector<Elite::Vector2>* m_pAquiredShotguns;
+	std::vector<Elite::Vector2>* m_pAquiredMedkits;
+	std::vector<Elite::Vector2>* m_pAquiredFood;
+	std::vector<Elite::Vector2>* m_pAquiredGarbage;
+	std::vector<HouseInfo_Extended>* m_pAquiredHouses;
 	
 	// In current FOV
-	std::vector<EntityInfo> m_EntitiesInFov;
-	std::vector<ItemInfo> m_ItemsInFov;
+	std::vector<EntityInfo> m_PistolsInFOV;
+	std::vector<EntityInfo> m_ShotgunsInFOV;
+	std::vector<EntityInfo> m_MedkitsInFOV;
+	std::vector<EntityInfo> m_FoodInFOV;
+	std::vector<EntityInfo> m_GarbageInFOV;
+	std::vector<EnemyInfo> m_EnemiesInFOV;
 	PurgeZoneInfo m_PurgeZoneInFov;
 
 	float m_FrameTime = 0.f;
@@ -77,13 +85,15 @@ private:
 	bool ExecutePlan();
 	GOAP::WorldState* GetHighestPriorityGoal();
 
+	// Space Partitioning
+	CellSpace m_WorldGrid;
+
 	// Steering
-	float m_WanderAngle{};
 	SteeringPlugin_Output m_steering;
 
 	// Helpers
 	bool CheckForPurgeZone();
-	template<typename T> void SortEntitiesByDistance(std::vector<T>* entities);
+	template<typename T> void SortEntitiesByDistance(std::vector<T>& entities);
 	void UpdateHouseInfo();
 };
 

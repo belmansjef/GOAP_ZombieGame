@@ -5,6 +5,7 @@
 #include <functional>
 #include "Data/EBlackboard.h"
 #include "Exam_HelperStructs.h"
+#include "../SpacePartitioning.h"
 
 class IExamInterface;
 
@@ -42,7 +43,7 @@ namespace GOAP
 			if (m_ActionTimer >= m_ActionTimeout)
 			{
 				m_ActionTimer = 0.f;
-				std::cout << "Action [" << m_Name << "] timedout!" << std::endl;
+				std::cout << "Action [" << m_Name << "] timed-out!" << std::endl;
 				return false;
 			}
 			return true;
@@ -52,18 +53,22 @@ namespace GOAP
 		virtual void SetPrecondition(const std::string& key, const bool value) { m_Preconditions[key] = value; }
 		virtual void SetEffect(const std::string& key, const bool value) { m_Effects[key] = value; }
 		virtual void SetActionTimeout(float timeout){ m_ActionTimeout = timeout; }
+		void SetTarget(const Elite::Vector2& target) { m_Target = target; }
 
 		virtual int GetCost() const { return m_Cost; }
 		std::string GetName() const { return m_Name; }
 
 	protected:
 		int m_Cost;
-		std::string m_Name;	
-		Elite::Vector2 m_Target;
-		AgentInfo m_AgentInfo;
-		IExamInterface* m_pInterface;
-		WorldState* m_pWorldState;
+		std::string m_Name;
 		float m_FrameTime;
+		AgentInfo m_AgentInfo;
+		Elite::Vector2 m_Target;
+		WorldState* m_pWorldState;
+		IExamInterface* m_pInterface;
+		SteeringPlugin_Output* m_pSteering;
+		std::vector<EntityInfo> m_Entities;
+		std::vector<Elite::Vector2>* m_EntityPositions;
 		
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.
