@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29613.14
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33110.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "GPP_TEST_DEBUG", "..\_DEMO_DEBUG\GPP_TEST_DEBUG.exe", "{E54B3443-7355-4905-AC5D-B4CB7E5170F2}"
 	ProjectSection(DebuggerProjectSystem) = preProject
@@ -14,6 +14,7 @@ Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "GPP_TEST_DEBUG", "..\_DEMO_
 		UseLegacyDebugEngines = No
 		LaunchSQLEngine = No
 		AttachLaunchAction = No
+		IORedirection = Auto
 	EndProjectSection
 EndProject
 Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "GPP_TEST_RELEASE", "..\_DEMO_RELEASE\GPP_TEST_RELEASE.exe", "{9E9D2EAB-1680-45A5-BE38-FAC6B2B34669}"
@@ -27,6 +28,7 @@ Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "GPP_TEST_RELEASE", "..\_DEM
 		UseLegacyDebugEngines = No
 		LaunchSQLEngine = No
 		AttachLaunchAction = No
+		IORedirection = Auto
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPP_Exam", "GPP_Exam.vcxproj", "{E1DB7373-9BCD-4D5E-A8B2-3F2DD82E3D53}"

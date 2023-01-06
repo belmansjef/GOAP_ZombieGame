@@ -45,6 +45,10 @@ CellSpace::CellSpace(float width, float height, int rows, int cols)
 		for (int y{ -m_NrOfCols / 2 }; y < m_NrOfCols / 2; ++y)
 		{
 			m_Cells.push_back(Cell(m_CellWidth * y, m_CellHeight * x, m_CellWidth, m_CellHeight));
+			if ((abs(y) == 6 && x <= 6 && x >= -6) || abs(x) == 6 && y <= 6 && y >= -6)
+			{
+				m_ExplorationPath.push_back(m_Cells.back());
+			}
 		}
 	}
 }
@@ -58,111 +62,9 @@ CellSpace& CellSpace::operator=(const CellSpace& other)
 	m_CellWidth = other.m_CellWidth;
 	m_CellHeight = other.m_CellHeight;
 	m_Cells = other.m_Cells;
+	m_ExplorationPath = other.m_ExplorationPath;
 
 	return *this;
-}
-
-Cell CellSpace::GetNextCellExpandingSquare()
-{
-	int row{ m_NrOfRows / 2 - 1};
-	int col{ m_NrOfCols / 2 - 1};
-	for (int size = 1; size < m_NrOfCols; size += 6	)
-	{
-		// Right
-		for (int i = 0; i < size; i++)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col++;
-		}
-
-		// up
-		for (int i = 0; i < size; i++)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row++;
-		}
-
-		// left
-		for (int i = 0; i < size + 3; i++)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			col--;
-		}
-
-		// down
-		for (int i = 0; i < size + 3; i++)
-		{
-			if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-			{
-				return m_Cells[row * m_NrOfCols + col];
-			}
-			row--;
-		}
-		if (row <=0 || row > m_NrOfRows - 1 || col < 0 || col > m_NrOfCols - 1) return m_Cells[m_NrOfRows / 2 * m_NrOfCols + m_NrOfCols / 2];
-	}
-
-	return m_Cells[m_NrOfRows / 2 * m_NrOfCols + m_NrOfCols / 2];
-}
-
-Cell CellSpace::GetNextCellSectorSearch()
-{
-	int row{ m_NrOfRows / 2};
-	int col{ m_NrOfCols / 2};
-	int legLength{ row - 1 };
-
-	// Check starting square
-	/*if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-	{
-		return m_Cells[row * m_NrOfCols + col];
-	}
-	col++;
-
-	if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-	{
-		return m_Cells[row * m_NrOfCols + col];
-	}
-	row++;
-
-	if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-	{
-		return m_Cells[row * m_NrOfCols + col];
-	}
-	col--;
-
-	if (!m_Cells[row * m_NrOfCols + col].hasVisited)
-	{
-		return m_Cells[row * m_NrOfCols + col];
-	}
-	row--;*/
-
-	// Left
-	if (!m_Cells[row * m_NrOfCols + col - legLength].hasVisited)
-	{
-		return m_Cells[row * m_NrOfCols + col];
-	}
-
-	// Top Left
-	if (!m_Cells[(row + legLength - 2) * m_NrOfCols + col - legLength + 2].hasVisited)
-	{
-		return m_Cells[row * m_NrOfCols + col];
-	}
-
-	// Top
-	if (!m_Cells[(row + legLength) * m_NrOfCols + col].hasVisited)
-	{
-		return m_Cells[row * m_NrOfCols + col];
-	}
-
-	return GetNextCellExpandingSquare();
 }
 
 std::vector<Cell> CellSpace::GetNeighbouringCells(int index) const
@@ -179,13 +81,17 @@ std::vector<Cell> CellSpace::GetNeighbouringCells(int index) const
 		m_Cells[row * m_NrOfCols + --col],
 		m_Cells[row * m_NrOfCols + --col],
 		m_Cells[++row * m_NrOfCols + col]
-
 	};
 }
 
 std::vector<Cell> CellSpace::GetCells() const
 {
 	return m_Cells;
+}
+
+std::vector<Cell> CellSpace::GetPath() const
+{
+	return m_ExplorationPath;
 }
 
 int CellSpace::PositionToIndex(const Elite::Vector2 pos) const
@@ -205,6 +111,22 @@ int CellSpace::PositionToIndex(const Elite::Vector2 pos) const
 	return 0;
 }
 
+Cell CellSpace::GetClosestCellOnPath(const Elite::Vector2& agentPos) const
+{
+	Cell closestCell{ m_Cells[(m_NrOfRows / 2 - 1) * m_NrOfCols + (m_NrOfCols / 2 - 1)]};
+	float closestDist{ FLT_MAX };
+	for (auto& cell : m_ExplorationPath)
+	{
+		const float dist{ cell.center.DistanceSquared(agentPos) };
+		if (dist < closestDist && !cell.hasVisited)
+		{
+			closestCell = cell;
+			closestDist = dist;
+		}
+	}
+	return closestCell;
+}
+
 void CellSpace::MarkCellAsVisited(int index)
 {
 	if (index < 0 || index > static_cast<int>(m_Cells.size()) - 1)
@@ -219,6 +141,15 @@ void CellSpace::MarkCellAsVisited(int index)
 void CellSpace::MarkCellAsVisited(const Elite::Vector2& agentPos)
 {
 	for (auto& cell : m_Cells)
+	{
+		if (cell.center.DistanceSquared(agentPos) < m_VisitedDistance)
+		{
+			cell.hasVisited = true;
+			break;
+		}
+	}
+
+	for (auto& cell : m_ExplorationPath)
 	{
 		if (cell.center.DistanceSquared(agentPos) < m_VisitedDistance)
 		{

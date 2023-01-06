@@ -1,12 +1,11 @@
 #pragma once
 
 #include <memory>
-
-#include "BaseAction.h"
 #include "WorldState.h"
 
 namespace GOAP
 {
+	class BaseAction;
 	struct Node final
 	{
 		static int last_id;		// Static to assign incrementing, unique IDs to nodes

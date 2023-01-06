@@ -28,6 +28,7 @@ namespace GOAP
 		void Update(Elite::Blackboard* pBlackboard) { if (!m_StateStack.empty()) m_StateStack.top().Update(this, pBlackboard); }
 		void PushState(FSMState& state) { m_StateStack.push(state); }
 		void PopState() { m_StateStack.pop(); }
+		void ClearStack() { m_StateStack = std::stack<FSMState>{}; }
 	private:
 		std::stack<FSMState> m_StateStack;
 	};

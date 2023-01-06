@@ -1,9 +1,25 @@
 #include "stdafx.h"
 #include "Plugin.h"
-#include "GOAP/Actions.h"
 #include "IExamInterface.h"
 
 #include <limits>
+
+// Actions
+#include "GOAP/Actions/BaseAction.h"
+#include "GOAP/Actions/Action_FleePurgezone.h"
+#include "GOAP/Actions/Action_Heal.h"
+#include "GOAP/Actions/Action_KillEnemyPistol.h"
+#include "GOAP/Actions/Action_KillEnemyShotgun.h"
+#include "GOAP/Actions/Action_SearchEnemy.h"
+#include "GOAP/Actions/Action_Eat.h"
+#include "GOAP/Actions/Action_GrabPistol.h"
+#include "GOAP/Actions/Action_GrabShotgun.h"
+#include "GOAP/Actions/Action_GrabFood.h"
+#include "GOAP/Actions/Action_GrabMedkit.h"
+#include "GOAP/Actions/Action_DestroyGarbage.h"
+#include "GOAP/Actions/Action_LootHouse.h"
+#include "GOAP/Actions/Action_SearchArea.h"
+#include "GOAP/Actions/Action_GoToClosestCell.h"
 
 using namespace std;
 
@@ -38,30 +54,94 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 
 	// Entities
 	m_pAquiredHouses		= new std::vector<HouseInfo_Extended>;
+	m_pAquiredHouses->reserve(20);
 	m_pAquiredEntities		= new std::vector<EntityInfo>;
-	m_pAquiredPistols		= new std::vector<Elite::Vector2>;
-	m_pAquiredShotguns		= new std::vector<Elite::Vector2>;
-	m_pAquiredMedkits		= new std::vector<Elite::Vector2>;
-	m_pAquiredFood			= new std::vector<Elite::Vector2>;
-	m_pAquiredGarbage		= new std::vector<Elite::Vector2>;
+	m_pAquiredEntities->reserve(50);
+	m_pAquiredPistols		= new std::vector<EntityInfo>;
+	m_pAquiredPistols->reserve(50);
+	m_pAquiredShotguns		= new std::vector<EntityInfo>;
+	m_pAquiredShotguns->reserve(50);
+	m_pAquiredMedkits		= new std::vector<EntityInfo>;
+	m_pAquiredMedkits->reserve(50);
+	m_pAquiredFood			= new std::vector<EntityInfo>;
+	m_pAquiredFood->reserve(50);
+	m_pAquiredGarbage		= new std::vector<EntityInfo>;
+	m_pAquiredGarbage->reserve(50);
+	m_EnemiesInFOV			= std::vector<EnemyInfo>();
 
 	// GOAP Actions
+	m_pActions.push_back(new GOAP::Action_FleePurgezone);
+	m_pActions.push_back(new GOAP::Action_Heal);
+	m_pActions.push_back(new GOAP::Action_KillEnemyPistol);
+	m_pActions.push_back(new GOAP::Action_KillEnemyShotgun);
+	m_pActions.push_back(new GOAP::Action_SearchEnemy);
+	m_pActions.push_back(new GOAP::Action_Eat);
+	m_pActions.push_back(new GOAP::Action_GrabPistol);
+	m_pActions.push_back(new GOAP::Action_GrabShotgun);
+	m_pActions.push_back(new GOAP::Action_GrabFood);
+	m_pActions.push_back(new GOAP::Action_GrabMedkit);
+	m_pActions.push_back(new GOAP::Action_DestroyGarbage);
+	m_pActions.push_back(new GOAP::Action_LootHouse);
+	m_pActions.push_back(new GOAP::Action_SearchArea);
 	m_pActions.push_back(new GOAP::Action_GotoClosestCell);
 
 	// Initial world state
+	m_WorldState.SetVariable("inside_purgezone",	false);
+	m_WorldState.SetVariable("in_danger",			false);
+	m_WorldState.SetVariable("enemy_aquired",		false);
+	m_WorldState.SetVariable("pistol_aquired",		false);
+	m_WorldState.SetVariable("pistol_in_inventory", false);
+	m_WorldState.SetVariable("shotgun_aquired",		false);
+	m_WorldState.SetVariable("shotgun_in_inventory",false);
+	m_WorldState.SetVariable("food_aquired",		false);
+	m_WorldState.SetVariable("food_in_inventory",	false);
+	m_WorldState.SetVariable("food_inventory_full", false);
+	m_WorldState.SetVariable("use_first_food",		true);
+	m_WorldState.SetVariable("low_energy",			false);
+	m_WorldState.SetVariable("medkit_aquired",		false);
+	m_WorldState.SetVariable("medkit_in_inventory",	false);
+	m_WorldState.SetVariable("low_health",			false);
+	m_WorldState.SetVariable("house_aquired",		false);
+	m_WorldState.SetVariable("all_houses_looted",	true);
+	m_WorldState.SetVariable("all_areas_searched",	true);
+	m_WorldState.SetVariable("garbage_aquired",		false);
 	m_WorldState.SetVariable("is_world_explored",	false);
 	m_WorldState.SetVariable("has_explored",		false);
 	m_pBlackboard = CreateBlackboard();
 	
 	// GOAP Goals
+	m_pGoals.push_back(new GOAP::Goal_FleePurgezone);
+	m_pGoals.push_back(new GOAP::Goal_ReplenishHealth);
+	m_pGoals.push_back(new GOAP::Goal_EliminateThreat);
+	m_pGoals.push_back(new GOAP::Goal_ReplenishEnergy);
+	m_pGoals.push_back(new GOAP::Goal_LootPistol);
+	m_pGoals.push_back(new GOAP::Goal_LootPistol);
+	m_pGoals.push_back(new GOAP::Goal_LootShotgun);
+	m_pGoals.push_back(new GOAP::Goal_LootFood);
+	m_pGoals.push_back(new GOAP::Goal_LootMedkit);
+	m_pGoals.push_back(new GOAP::Goal_ClearGarbage);
+	m_pGoals.push_back(new GOAP::Goal_LootHouse);
+	m_pGoals.push_back(new GOAP::Goal_SearchArea);
 	m_pGoals.push_back(new GOAP::Goal_ExploreWorld);
 
 	// FSM States
 	m_IdleState = GOAP::FSMState([&](GOAP::FSM* pFSM, Elite::Blackboard* pBlackboard)
 		{
-			m_pPlan = m_ASPlanner.FormulatePlan(m_WorldState, *GetHighestPriorityGoal(), m_pActions, m_pBlackboard);
+			m_CurrentGoal = GetHighestPriorityGoal();
+			m_pPlan = m_ASPlanner.FormulatePlan(m_WorldState, *m_CurrentGoal, m_pActions, m_pBlackboard);
 			if (!m_pPlan.empty())
 			{
+				std::cout << m_WorldState << std::endl;
+				std::cout << "found a plan for goal [" << m_CurrentGoal->name << "]: ";
+				for (auto& it = m_pPlan.rbegin(); it != m_pPlan.rend(); ++it)
+				{
+					if (it != m_pPlan.rbegin())
+					{
+						std::cout << " -> ";
+					}
+					std::cout << "[" << (*it)->GetName() << "]";
+				}
+				std::cout << std::endl;
 				pFSM->PopState();
 				pFSM->PushState(m_ExecuteActionState);
 			}
@@ -95,6 +175,7 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 			GOAP::BaseAction* pAction = m_pPlan.back();
 			if (pAction->IsDone())
 			{
+				std::cout << "finished executing [" << pAction->GetName() << "]" << std::endl;
 				m_pPlan.pop_back();
 				if (m_pPlan.empty())
 				{
@@ -140,19 +221,20 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 {
 	params.AutoFollowCam = true; //Automatically follow the AI? (Default = true)
 	params.RenderUI = true; //Render the IMGUI Panel? (Default = true)
-	params.SpawnEnemies = false; //Do you want to spawn enemies? (Default = true)
+	params.SpawnEnemies = true; //Do you want to spawn enemies? (Default = true)
 	params.EnemyCount = 20; //How many enemies? (Default = 20)
 	params.GodMode = true; //GodMode > You can't die, can be useful to inspect certain behaviors (Default = false)
 	params.LevelFile = "GameLevel.gppl";
 	params.AutoGrabClosestItem = true; //A call to Item_Grab(...) returns the closest item that can be grabbed. (EntityInfo argument is ignored)
 	params.StartingDifficultyStage = 1;
 	params.InfiniteStamina = false;
-	params.SpawnDebugPistol = false;
-	params.SpawnDebugShotgun = false;
+	params.SpawnDebugPistol = true;
+	params.SpawnDebugShotgun = true;
 	params.SpawnPurgeZonesOnMiddleClick = true;
-	params.PrintDebugMessages = true;
+	params.PrintDebugMessages = false;
 	params.ShowDebugItemNames = true;
-	params.Seed = 3;
+	params.SpawnZombieOnRightClick = true;
+	params.Seed = 8;
 }
 
 //Only Active in DEBUG Mode
@@ -215,24 +297,42 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 	
 	AgentInfo agent{ m_pInterface->Agent_GetInfo() };
 	m_WorldGrid.MarkCellAsVisited(agent.Position);
-	m_pBlackboard->ChangeData("Target",				m_Target);
-	m_pBlackboard->ChangeData("AgentInfo",			agent);
-	m_pBlackboard->ChangeData("FrameTime",			m_FrameTime);
-	m_pBlackboard->ChangeData("CellSpace",			m_WorldGrid);
-	m_pBlackboard->ChangeData("EnemyEntities",		m_EnemiesInFOV);
-	m_pBlackboard->ChangeData("PistolEntities",		m_PistolsInFOV);
-	m_pBlackboard->ChangeData("ShotgunEntities",	m_ShotgunsInFOV);
-	m_pBlackboard->ChangeData("MedEntities",		m_MedkitsInFOV);
-	m_pBlackboard->ChangeData("FoodEntities",		m_FoodInFOV);
-	m_pBlackboard->ChangeData("GarbageEntities",	m_GarbageInFOV);
+	m_pBlackboard->ChangeData("Target",		m_Target);
+	m_pBlackboard->ChangeData("FrameTime",	m_FrameTime);
+	m_pBlackboard->ChangeData("CellSpace",	m_WorldGrid);
+	m_pBlackboard->ChangeData("Enemies",	m_EnemiesInFOV);
 
-	// WorldState
-	m_WorldState.SetVariable("low_hunger",		m_pInterface->Agent_GetInfo().Energy <= 2.f);
-	m_WorldState.SetVariable("low_health",		m_pInterface->Agent_GetInfo().Health <= 8.f);
-	// m_WorldState.SetVariable("in_danger",		m_WorldState.GetVariable("in_danger") || m_pInterface->Agent_GetInfo().WasBitten || !m_EnemiesInFOV.empty());
+	// World State
+	m_WorldState.SetVariable("low_energy", m_pInterface->Agent_GetInfo().Energy <= 4.f);
+	m_WorldState.SetVariable("use_first_food", true);
+	if (m_WorldState.GetVariable("food_in_inventory"))
+	{
+		ItemInfo item;
+		int energy;
+		if (m_WorldState.GetVariable("food_inventory_full"))
+		{
+			m_pInterface->Inventory_GetItem(4U, item);
+			energy = m_pInterface->Food_GetEnergy(item);
+		}
+		else
+		{
+			m_pInterface->Inventory_GetItem(3U, item);
+			energy = m_pInterface->Food_GetEnergy(item);
+		}
+		m_WorldState.SetVariable("low_energy", m_pInterface->Agent_GetInfo().Energy <= 10.f - energy);
+	}
+	
+	m_WorldState.SetVariable("low_health",		m_pInterface->Agent_GetInfo().Health <= 6.f);
+	m_WorldState.SetVariable("in_danger",		m_WorldState.GetVariable("in_danger") || m_pInterface->Agent_GetInfo().WasBitten || !m_EnemiesInFOV.empty());
 	m_WorldState.SetVariable("enemy_aquired",	!m_EnemiesInFOV.empty());
 
 	m_FSM.Update(m_pBlackboard);
+	GOAP::WorldState goal{*GetHighestPriorityGoal()};
+	if (*m_CurrentGoal != goal)
+	{
+		m_FSM.ClearStack();
+		m_FSM.PushState(m_IdleState);
+	}
 
 	return m_Steering;
 }
@@ -243,37 +343,38 @@ void Plugin::Render(float dt) const
 	//This Render function should only contain calls to Interface->Draw_... functions
 	m_pInterface->Draw_SolidCircle(m_Target, .7f, { 0,0 }, { 1, 0, 0 });
 
+	// World grid
 	for (const auto& cell : m_WorldGrid.GetCells())
 	{
 		if (cell.hasVisited)
-			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, {0.f, 0.8f, 0.f}, -1.f);
+			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, {0.f, 1.f, 0.f}, -1.f);
 		else
-			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, { 0.8f, 0.f, 0.f });
+			m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, { 1.f, 0.f, 0.f });
 	}
 
+	for (const auto& cell : m_WorldGrid.GetPath())
+	{
+		m_pInterface->Draw_Polygon(&cell.GetRectPoints()[0], 4, { 0.f, 0.f, 1.f }, -1.f);
+	}
+
+	// World border
 	m_pInterface->Draw_Polygon(&m_WorldBoundaries[0], 4, { 0.f, 0.f, 0.f }, m_pInterface->NextDepthSlice());
 
-	for (const auto& pistolPos : *m_pAquiredPistols)
+	// Entities
+	for (const auto& e : *m_pAquiredEntities)
 	{
-		m_pInterface->Draw_Circle(pistolPos, 125.f, { 0.f, 0.f, 1.f });
-		m_pInterface->Draw_Circle(pistolPos, 2.f,	{ 0.f, 1.f, 0.f });
-	}
-	for (const auto& shotgunPos : *m_pAquiredShotguns)
-	{
-		m_pInterface->Draw_Circle(shotgunPos, 125.f, { 0.f, 0.f, 1.f });
-		m_pInterface->Draw_Circle(shotgunPos, 2.f,	 { 0.f, 1.f, 0.f });
-	}
-	for (const auto& medkitPos : *m_pAquiredMedkits)
-	{
-		m_pInterface->Draw_Circle(medkitPos, 125.f, { 0.f, 0.f, 1.f });
-		m_pInterface->Draw_Circle(medkitPos, 2.f,   { 0.f, 1.f, 0.f });
-	}
-	for (const auto& foodPos : *m_pAquiredFood)
-	{
-		m_pInterface->Draw_Circle(foodPos, 125.f, { 0.f, 0.f, 1.f });
-		m_pInterface->Draw_Circle(foodPos, 2.f,   { 0.f, 1.f, 0.f });
+		m_pInterface->Draw_Circle(e.Location, 2.f,	{ 0.f, 1.f, 0.f });
 	}
 
+	// Houses
+	for (const auto& house : *m_pAquiredHouses)
+	{
+		Elite::Vector3 color{0.f, 0.f, 1.f};
+		if (house.HasRecentlyVisited()) color = { 1.f, 1.f, 0.f };
+		if (house.AreaSearched) color = { 0.f, 1.f, 1.f };
+
+		m_pInterface->Draw_Polygon(&house.GetRectPoints()[0], 4, color);
+	}
 }
 
 void Plugin::GetNewHousesInFOV()
@@ -287,143 +388,106 @@ void Plugin::GetNewHousesInFOV()
 			if (it == m_pAquiredHouses->end())
 			{
 				m_pAquiredHouses->push_back(reinterpret_cast<HouseInfo_Extended&>(hi));
-				m_pAquiredHouses->back().TimeSinceLastVisit = m_pAquiredHouses->back().ReactivationTime = 500.f;
+				m_pAquiredHouses->back().AreaSearched = false;
+				m_pAquiredHouses->back().NextCornerAreaSearch = Corner::TopRight;
+				m_pAquiredHouses->back().NextCornerHouseSearch = Corner::BottomLeft;
+				m_pAquiredHouses->back().TimeSinceLastVisit = m_pAquiredHouses->back().ReactivationTime = 900.f;
 			}
 			continue;
 		}
 		break;
 	}
 
-	if (!m_pAquiredHouses->empty())
-		SortEntitiesByDistance(*m_pAquiredHouses);
-
 	m_WorldState.SetVariable("house_aquired", !m_pAquiredHouses->empty());
 }
 
 void Plugin::GetEntitiesInFOV()
 {
-	EntityInfo ei{};
-	BYTE flags{};
-
-	// Clear previous items
-	m_PistolsInFOV.clear();
-	m_ShotgunsInFOV.clear();
-	m_MedkitsInFOV.clear();
-	m_FoodInFOV.clear();
-	m_GarbageInFOV.clear();
-
+	EntityInfo ei;
 	for (int i = 0;; ++i)
 	{
 		if (m_pInterface->Fov_GetEntityByIndex(i, ei))
 		{
 			if (ei.Type != eEntityType::ITEM) continue;
 
-			ItemInfo item{};
+			ItemInfo item;
 			m_pInterface->Item_GetInfo(ei, item);
-			switch (item.Type)
-			{
-			case eItemType::PISTOL:
-				m_PistolsInFOV.emplace_back(ei);
-				break;
-			case eItemType::SHOTGUN:
-				m_ShotgunsInFOV.emplace_back(ei);
-				break;
-			case eItemType::MEDKIT:
-				m_MedkitsInFOV.emplace_back(ei);
-				break;
-			case eItemType::FOOD:
-				m_FoodInFOV.emplace_back(ei);
-				break;
-			case eItemType::GARBAGE:
-				m_GarbageInFOV.emplace_back(ei);
-				break;
-			}
 
-			// Check if we're not already aware of the item
+			// Check if we are aware of this entity
 			if (std::find(m_pAquiredEntities->begin(), m_pAquiredEntities->end(), ei) == m_pAquiredEntities->end())
 			{
-				// If we haven't spotted this item yet, add it's location to all known items
 				m_pAquiredEntities->push_back(ei);
+
+				// If we aren't aware of this entity, add it to the correct vector
 				switch (item.Type)
 				{
 				case eItemType::PISTOL:
-					m_pAquiredPistols->emplace_back(item.Location);
-					flags |= 1U << 0;
+					m_pAquiredPistols->emplace_back(ei);
 					break;
 				case eItemType::SHOTGUN:
-					m_pAquiredShotguns->emplace_back(item.Location);
-					flags |= 1U << 1;
+					m_pAquiredShotguns->emplace_back(ei);
 					break;
 				case eItemType::MEDKIT:
-					m_pAquiredMedkits->emplace_back(item.Location);
-					flags |= 1U << 2;
+					m_pAquiredMedkits->emplace_back(ei);
 					break;
 				case eItemType::FOOD:
-					m_pAquiredFood->emplace_back(item.Location);
-					flags |= 1U << 3;
+					m_pAquiredFood->emplace_back(ei);
 					break;
 				case eItemType::GARBAGE:
-					m_pAquiredGarbage->emplace_back(item.Location);
-					flags |= 1U << 4;
+					m_pAquiredGarbage->emplace_back(ei);
 					break;
+				}
+			}
+			else
+			{
+				// We are already aware of the entity, update it's hash
+				switch (item.Type)
+				{
+					case eItemType::PISTOL:
+					{
+						auto& it = std::find(m_pAquiredPistols->begin(), m_pAquiredPistols->end(), ei);
+						if (it != m_pAquiredPistols->end())
+							it->EntityHash = ei.EntityHash;
+						break;
+					}
+					case eItemType::SHOTGUN:
+					{
+						auto& it = std::find(m_pAquiredShotguns->begin(), m_pAquiredShotguns->end(), ei);
+						if (it != m_pAquiredShotguns->end())
+							it->EntityHash = ei.EntityHash;
+						break;
+					}
+					case eItemType::MEDKIT:
+					{
+						auto& it = std::find(m_pAquiredMedkits->begin(), m_pAquiredMedkits->end(), ei);
+						if (it != m_pAquiredMedkits->end())
+							it->EntityHash = ei.EntityHash;
+						break;
+					}
+					case eItemType::FOOD:
+					{
+						auto& it = std::find(m_pAquiredFood->begin(), m_pAquiredFood->end(), ei);
+						if (it != m_pAquiredFood->end())
+							it->EntityHash = ei.EntityHash;
+						break;
+					}
+					case eItemType::GARBAGE:
+					{
+						auto& it = std::find(m_pAquiredGarbage->begin(), m_pAquiredGarbage->end(), ei);
+						if (it != m_pAquiredGarbage->end())
+							it->EntityHash = ei.EntityHash;
+						break;
+					}
 				}
 			}
 			continue;
 		} // If entity
 		break;
 	}
-
-	auto SortVectors = [&](const Elite::Vector2& a, const Elite::Vector2& b)
-	{
-		return a.DistanceSquared(m_pInterface->Agent_GetInfo().Position) > b.DistanceSquared(m_pInterface->Agent_GetInfo().Position);
-	};
-
-	const Elite::Vector2 agentPos{ m_pInterface->Agent_GetInfo().Position };
-	if ((flags >> 0) & 1U)
-	{
-		std::sort(m_pAquiredPistols->begin(), m_pAquiredPistols->end(), SortVectors);
-	}
-	SortEntitiesByDistance(m_PistolsInFOV);
-	m_WorldState.SetVariable("pistol_aquired", !m_pAquiredPistols->empty());
-	m_WorldState.SetVariable("pistol_nearby", false);
-	if (m_pAquiredPistols->size() > 1)
-		m_WorldState.SetVariable("pistol_nearby", m_pAquiredPistols->at(m_pAquiredPistols->size() - 1).DistanceSquared(agentPos) <= 15'625.f);
-
-	if ((flags >> 1) & 1U)
-	{
-		std::sort(m_pAquiredShotguns->begin(), m_pAquiredShotguns->end(), SortVectors);
-	}
-	SortEntitiesByDistance(m_ShotgunsInFOV);
+	m_WorldState.SetVariable("pistol_aquired",	!m_pAquiredPistols->empty());
 	m_WorldState.SetVariable("shotgun_aquired", !m_pAquiredShotguns->empty());
-	m_WorldState.SetVariable("shotgun_nearby", false);
-	if (m_pAquiredShotguns->size() > 1)
-		m_WorldState.SetVariable("shotgun_nearby", m_pAquiredShotguns->at(m_pAquiredShotguns->size() - 1).DistanceSquared(agentPos) <= 15'625.f);
-
-	if ((flags >> 2) & 1U)
-	{
-		std::sort(m_pAquiredMedkits->begin(), m_pAquiredMedkits->end(), SortVectors);
-	}
-	SortEntitiesByDistance(m_MedkitsInFOV);
-	m_WorldState.SetVariable("medkit_aquired", !m_pAquiredMedkits->empty());
-	m_WorldState.SetVariable("medkit_nearby", false);
-	if (m_pAquiredMedkits->size() > 1)
-		m_WorldState.SetVariable("medkit_nearby", m_pAquiredMedkits->at(m_pAquiredMedkits->size() - 1).DistanceSquared(agentPos) <= 15'625.f);
-
-	if ((flags >> 3) & 1U)
-	{
-		std::sort(m_pAquiredFood->begin(), m_pAquiredFood->end(), SortVectors);
-	}
-	SortEntitiesByDistance(m_FoodInFOV);
-	m_WorldState.SetVariable("food_aquired", !m_pAquiredFood->empty());
-	m_WorldState.SetVariable("food_nearby", false);
-	if (m_pAquiredFood->size() > 1)
-		m_WorldState.SetVariable("food_nearby", m_pAquiredFood->at(m_pAquiredFood->size() - 1).DistanceSquared(agentPos) <= 15'625.f);
-
-	if ((flags >> 4) & 1U)
-	{
-		std::sort(m_pAquiredGarbage->begin(), m_pAquiredGarbage->end(), SortVectors);
-	}
-	SortEntitiesByDistance(m_GarbageInFOV);
+	m_WorldState.SetVariable("medkit_aquired",	!m_pAquiredMedkits->empty());
+	m_WorldState.SetVariable("food_aquired",	!m_pAquiredFood->empty());
 	m_WorldState.SetVariable("garbage_aquired", !m_pAquiredGarbage->empty());
 }
 
@@ -447,7 +511,7 @@ std::vector<EnemyInfo> Plugin::GetEnemiesInFOV()
 		break;
 	}
 
-	SortEntitiesByDistance(enemiesInFOV);
+	SortEntitiesByDistance(&enemiesInFOV);
 	return enemiesInFOV;
 }
 
@@ -456,28 +520,22 @@ Elite::Blackboard* Plugin::CreateBlackboard()
 	Elite::Blackboard* m_pBlackboard = new Elite::Blackboard();
 	m_pBlackboard->AddData("WorldState",	&m_WorldState);
 	m_pBlackboard->AddData("FrameTime",		m_FrameTime);
-	m_pBlackboard->AddData("AgentInfo",		AgentInfo{});
-	m_pBlackboard->AddData("InventorySlot",	0U);
 	m_pBlackboard->AddData("Target",		Elite::Vector2{});
 	m_pBlackboard->AddData("Steering",		&m_Steering);
 	m_pBlackboard->AddData("Interface",		m_pInterface);
 	m_pBlackboard->AddData("CellSpace",		m_WorldGrid);
 	
-	// Entity positions
-	m_pBlackboard->AddData("Houses",				m_pAquiredHouses);
-	m_pBlackboard->AddData("PistolPositions",		m_pAquiredPistols);
-	m_pBlackboard->AddData("ShotgunPositions",		m_pAquiredShotguns);
-	m_pBlackboard->AddData("MedPositions",			m_pAquiredMedkits);
-	m_pBlackboard->AddData("FoodPositions",			m_pAquiredFood);
-	m_pBlackboard->AddData("GarbagePositions",		m_pAquiredGarbage);
+	// Entities
+	m_pBlackboard->AddData("Entities",		m_pAquiredEntities);
+	m_pBlackboard->AddData("Houses",		m_pAquiredHouses);
+	m_pBlackboard->AddData("Pistols",		m_pAquiredPistols);
+	m_pBlackboard->AddData("Shotguns",		m_pAquiredShotguns);
+	m_pBlackboard->AddData("Medkits",		m_pAquiredMedkits);
+	m_pBlackboard->AddData("Food",			m_pAquiredFood);
+	m_pBlackboard->AddData("Garbage",		m_pAquiredGarbage);
 
 	// Entities in FOV
-	m_pBlackboard->AddData("EnemyEntities",		std::vector<EnemyInfo>{});
-	m_pBlackboard->AddData("PistolEntities",	std::vector<EntityInfo>{});
-	m_pBlackboard->AddData("ShotgunEntities",	std::vector<EntityInfo>{});
-	m_pBlackboard->AddData("MedEntities",		std::vector<EntityInfo>{});
-	m_pBlackboard->AddData("FoodEntities",		std::vector<EntityInfo>{});
-	m_pBlackboard->AddData("GarbageEntities",	std::vector<EntityInfo>{});
+	m_pBlackboard->AddData("Enemies",		std::vector<EnemyInfo>{});
 	return m_pBlackboard;
 }
 
@@ -496,16 +554,46 @@ GOAP::WorldState* Plugin::GetHighestPriorityGoal()
 
 bool Plugin::MoveAgent(GOAP::BaseAction* pAction)
 {
-	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
-	m_Steering.LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(pAction->GetTarget()->Location) - agentInfo.Position).GetNormalized();
-	m_Steering.LinearVelocity *= agentInfo.MaxLinearSpeed;
+	// Debug draw
+	m_pInterface->Draw_SolidCircle(pAction->GetTarget()->Location, .7f, { 0,0 }, { 1, 0, 0 });
 
-	if (agentInfo.Position.DistanceSquared(pAction->GetTarget()->Location) <= (agentInfo.GrabRange * agentInfo.GrabRange))
+	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
+	if (agentInfo.Position.DistanceSquared(pAction->GetTarget()->Location) <= (agentInfo.GrabRange * agentInfo.GrabRange) + 5.f)
 	{
 		m_Steering.LinearVelocity = Elite::ZeroVector2;
-		pAction->SetInRange(true);
-		return true;
+		m_Steering.AutoOrient = false;
+
+		const float angleError{ 1.f };
+		const Elite::Vector2 dirVector = (pAction->GetTarget()->Location - agentInfo.Position).GetNormalized();
+		const float targetAngle = atan2f(dirVector.y, dirVector.x);
+		const float agentAngle = agentInfo.Orientation;
+		const float delta_angle = targetAngle - agentAngle;
+		
+		// Looking at target
+		if (abs(delta_angle) <= angleError)
+		{
+			m_Steering.AutoOrient = true;
+			m_Steering.RunMode = false;
+			m_Steering.LinearVelocity = Elite::ZeroVector2;
+			m_Steering.AngularVelocity = 0.f;
+			pAction->SetInRange(true);
+			return true;
+		}
+
+		m_Steering.AngularVelocity = agentInfo.MaxAngularSpeed;
+		if (delta_angle < 0 || delta_angle > static_cast<float>(M_PI))
+		{
+			m_Steering.AngularVelocity = -agentInfo.MaxAngularSpeed;
+		}
 	}
+
+	m_Steering.LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(pAction->GetTarget()->Location) - agentInfo.Position).GetNormalized();
+	m_Steering.LinearVelocity *= agentInfo.MaxLinearSpeed;
+	if (m_WorldState.GetVariable("in_danger") && agentInfo.Stamina >= 5.f)
+		m_Steering.RunMode = true;
+	else if (agentInfo.Stamina == 0.f)
+		m_Steering.RunMode = false;
+
 	return false;
 }
 
@@ -517,36 +605,31 @@ bool Plugin::CheckForPurgeZone()
 	{
 		if (m_pInterface->Fov_GetEntityByIndex(i, ei))
 		{
-			if (ei.Type == eEntityType::PURGEZONE)
+			if (ei.Type == eEntityType::PURGEZONE && !m_WorldState.GetVariable("inside_purgezone"))
 			{
-				m_pInterface->PurgeZone_GetInfo(ei, m_PurgeZoneInFov);
-				Elite::Vector2 dir_vector = m_pInterface->Agent_GetInfo().Position - m_PurgeZoneInFov.Center;
-				if (dir_vector.MagnitudeSquared() <= (m_PurgeZoneInFov.Radius * m_PurgeZoneInFov.Radius) + 200.f)
+				m_pInterface->PurgeZone_GetInfo(ei, m_PurgeZoneInFOV);
+				const Elite::Vector2 dir_vector = m_pInterface->Agent_GetInfo().Position - m_PurgeZoneInFOV.Center;
+				if (dir_vector.MagnitudeSquared() <= (m_PurgeZoneInFOV.Radius * m_PurgeZoneInFOV.Radius) + 250.f)
 				{
-					combinedDir += dir_vector;
+					m_Target = m_PurgeZoneInFOV.Center + dir_vector.GetNormalized() * (m_PurgeZoneInFOV.Radius * 1.5f);
 					m_WorldState.SetVariable("inside_purgezone", true);
+					m_WorldState.SetVariable("in_danger", true);
+					return true;
 				}
 			}
 			continue;
 		}
 		break;
 	}
-
-	if (combinedDir != Elite::ZeroVector2)
-	{
-		m_Target = m_PurgeZoneInFov.Center + combinedDir.GetNormalized() * (m_PurgeZoneInFov.Radius * 1.65f);
-		std::cout << "Target at: " << m_Target << std::endl;
-		return true;
-	}
 	return false;
 }
 
 template<typename T>
-void Plugin::SortEntitiesByDistance(std::vector<T>& entities)
+void Plugin::SortEntitiesByDistance(std::vector<T>* entities)
 {
-	if (entities.empty()) return;
+	if (entities->empty()) return;
 
-	std::sort(entities.begin(), entities.end(), [&](const T& a, const T& b)
+	std::sort(entities->begin(), entities->end(), [&](const T& a, const T& b)
 		{
 			const Elite::Vector2 agentPos{ m_pInterface->Agent_GetInfo().Position };
 			const float distToA{ a.Location.DistanceSquared(agentPos) };
@@ -561,8 +644,18 @@ void Plugin::UpdateHouseInfo()
 {
 	if (m_pAquiredHouses->empty()) return;
 
+	m_WorldState.SetVariable("all_houses_looted", true);
+	m_WorldState.SetVariable("all_areas_searched", true);
 	for (auto& house : *m_pAquiredHouses)
 	{	
 		house.TimeSinceLastVisit += m_FrameTime;
+		if (!house.HasRecentlyVisited())
+		{
+			m_WorldState.SetVariable("all_houses_looted", false);
+		}
+		if(!house.AreaSearched)
+		{
+			m_WorldState.SetVariable("all_areas_searched", false);
+		}
 	}
 }

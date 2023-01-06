@@ -1,7 +1,6 @@
 #include "WorldState.h"
 #include "Exam_HelperStructs.h"
 #include "IExamInterface.h"
-#include "../SpacePartitioning.h"
 
 #pragma region BaseWorldState
 GOAP::WorldState::WorldState(const std::string& _name, int _priority)
@@ -69,8 +68,67 @@ int GOAP::WorldState::DistanceTo(const WorldState& goal_state) const
 #pragma endregion // BaseWorldState
 
 #pragma region Goals
+
+bool GOAP::Goal_FleePurgezone::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("inside_purgezone");
+}
+
+bool GOAP::Goal_EliminateThreat::IsValid(const WorldState& ws) const
+{
+    return (ws.GetVariable("enemy_aquired") || ws.GetVariable("in_danger")) &&
+        (ws.GetVariable("pistol_in_inventory") || ws.GetVariable("shotgun_in_inventory") || ws.GetVariable("pistol_aquired") || ws.GetVariable("shotgun_aquired"));
+}
+
+
+bool GOAP::Goal_ReplenishHealth::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("low_health") && (ws.GetVariable("medkit_aquired") || ws.GetVariable("medkit_in_inventory"));
+}
+
+bool GOAP::Goal_ReplenishEnergy::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("low_energy") && (ws.GetVariable("food_aquired") || ws.GetVariable("food_in_inventory"));
+}
+
+bool GOAP::Goal_LootPistol::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("pistol_aquired") && !ws.GetVariable("pistol_in_inventory");
+}
+
+bool GOAP::Goal_LootShotgun::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("shotgun_aquired") && !ws.GetVariable("shotgun_in_inventory");
+}
+
+bool GOAP::Goal_LootFood::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("food_aquired") && !ws.GetVariable("food_inventory_full");
+}
+
+bool GOAP::Goal_LootMedkit::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("medkit_aquired") && !ws.GetVariable("medkit_in_inventory");
+}
+
+bool GOAP::Goal_ClearGarbage::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("garbage_aquired");
+}
+
+bool GOAP::Goal_LootHouse::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("house_aquired") && !ws.GetVariable("all_houses_looted");
+}
+
+bool GOAP::Goal_SearchArea::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("house_aquired") && ws.GetVariable("all_houses_looted") && !ws.GetVariable("all_areas_searched");
+}
+
 bool GOAP::Goal_ExploreWorld::IsValid(const WorldState& ws) const
 {
     return !ws.GetVariable("is_world_explored");
 }
+
 #pragma endregion // Goals

@@ -3,9 +3,9 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
-#include "Data/EBlackboard.h"
+#include "../Data/EBlackboard.h"
 #include "Exam_HelperStructs.h"
-#include "../stdafx.h"
+#include "../../stdafx.h"
 
 class IExamInterface;
 
@@ -39,7 +39,7 @@ namespace GOAP
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) { return true; }
 		virtual bool Execute(Elite::Blackboard* m_pBlackboard) { return true; }
 
-		virtual void Reset() { SAFE_DELETE(m_pTarget); m_InRange = false; }
+		virtual void Reset() { m_pTarget = nullptr; m_InRange = false; }
 		virtual bool RequiresInRange() { return true; }
 		void SetInRange(bool inRange) { m_InRange = inRange; }
 
@@ -57,6 +57,9 @@ namespace GOAP
 		bool m_InRange;
 		std::string m_Name;
 		EntityInfo* m_pTarget;
+		WorldState* m_pWorldState;
+		IExamInterface* m_pInterface;
+		std::vector<EntityInfo>* m_pEntities;
 		
 		// Preconditions are predicates that must be satisfied
 		// before this action can be taken.

@@ -3,13 +3,18 @@
 
 namespace GOAP
 {
-	class Action_GotoClosestCell final : public BaseAction
+	class Action_DestroyGarbage final : public BaseAction
 	{
 	public:
-		Action_GotoClosestCell();
+		Action_DestroyGarbage();
+
+		virtual bool IsDone() override;
+		virtual void Reset() override;
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
-		virtual bool IsDone() override;
+
+	private:
+		bool m_GarbageDestoryed;
 	};
 }

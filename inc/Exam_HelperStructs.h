@@ -37,12 +37,13 @@ struct GameDebugParams //Debuggin Purposes only (Ignored during release build)
 	bool RenderUI = false; //Render Player UI (Parameters)
 	bool AutoGrabClosestItem = false; //Auto Grab closest item (Item_Grab)
 	std::string LevelFile = "GameLevel.gppl"; //Level to load?
-	int Seed = 1234; //Seed for random generator
+	int Seed = -1; //Seed for random generator
 	int StartingDifficultyStage = 0; // Overwrites the difficulty stage
 	bool InfiniteStamina = false; // Agent has infinite stamina
 	bool SpawnDebugPistol = false; // Spawns pistol with 1000 ammo at start
-	bool SpawnDebugShotgun = false; // Spawns pistol with 1000 ammo at start
-	bool SpawnPurgeZonesOnMiddleClick = false; // Middle mouse clicks spawn purge zones
+	bool SpawnDebugShotgun = false; // Spawns shotgun with 1000 ammo at start
+	bool SpawnPurgeZonesOnMiddleClick = false; // Middle mouse clicks spawns purge zone
+	bool SpawnZombieOnRightClick = false; // Right mouse clicks spawns zombie
 	bool PrintDebugMessages = true;
 	bool ShowDebugItemNames = true;
 };
@@ -112,10 +113,37 @@ struct HouseInfo
 	Elite::Vector2 Size;
 };
 
+enum class Corner{ BottomLeft, TopLeft, BottomRight, TopRight };
+
 struct HouseInfo_Extended : HouseInfo
 {
-	float TimeSinceLastVisit{20.f};
-	float ReactivationTime{20.f};
+	float TimeSinceLastVisit;
+	float ReactivationTime;
+	bool AreaSearched;
+	Corner NextCornerAreaSearch;
+	Corner NextCornerHouseSearch;
+
+	std::vector<Elite::Vector2> GetRectPoints() const
+	{
+		return
+		{
+			{ Location - Size / 2.f },
+			{ Location.x - Size.x / 2.f , Location.y + Size.y / 2.f },
+			{ Location + Size / 2.f},
+			{ Location.x + Size.x / 2.f, Location.y - Size.y / 2.f }
+		};
+	};
+
+	std::vector<Elite::Vector2> GetCorners() const
+	{
+		return
+		{
+			{ Location - Size / 2.f + Elite::Vector2{5.f, 5.f} },
+			{ Location.x - Size.x / 2.f + 5.f, Location.y + Size.y / 2.f - 5.f },
+			{ Location + Size / 2.f - Elite::Vector2{5.f, 5.f} },
+			{ Location.x + Size.x / 2.f - 5.f, Location.y - Size.y / 2.f + 5.f }
+		};
+	};
 	bool HasRecentlyVisited() const { return TimeSinceLastVisit < ReactivationTime; }
 	bool operator==(const HouseInfo_Extended& rhs) { return Location == rhs.Location; }
 	bool operator==(const HouseInfo& rhs) { return Location == rhs.Location; }
@@ -156,6 +184,7 @@ struct EntityInfo
 
 	int EntityHash = 0;
 	bool operator==(const EntityInfo& other) const { return Location == other.Location; }
+	bool operator==(EntityInfo&& other) const { return Location == other.Location; }
 };
 
 struct WorldInfo

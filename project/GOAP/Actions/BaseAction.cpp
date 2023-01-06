@@ -1,8 +1,6 @@
 #include "BaseAction.h"
-#include "WorldState.h"
+#include "../WorldState.h"
 #include "IExamInterface.h"
-
-#include <iostream>
 
 
 GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost)
@@ -10,6 +8,9 @@ GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost)
     , m_Cost(_cost)
     , m_InRange(false)
     , m_pTarget(new EntityInfo())
+    , m_pWorldState(nullptr)
+    , m_pInterface(nullptr)
+    , m_pEntities(nullptr)
 {
 }
 

@@ -56,7 +56,7 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
 {
     if (start.MeetsGoal(goal))
     {
-        std::cout << "Goal already meets current WorldState!" << std::endl;
+        std::cout << "Goal [" << goal.name << "] already meets current WorldState!" << std::endl;
         return std::vector<BaseAction*>();
     }
 
@@ -69,6 +69,12 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
         {
             usable_actions.push_back(action);
         }
+    }
+
+    if (usable_actions.empty())
+    {
+        std::cout << "No usable actions to formulate plan!" << std::endl;
+        return std::vector<BaseAction*>();
     }
 
     // We re-use the planner, so clear out the lists filled with previous results
@@ -150,5 +156,6 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
     }
 
     // If there's nothing left to evaluate, then we have no possible path left
-    throw std::runtime_error("A* planner could not find a path from start to goal");
+    std::cout << "Could not formulate a plan!" << std::endl;
+    return std::vector<BaseAction*>();
 }

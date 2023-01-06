@@ -95,7 +95,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;GPPExam2019_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -135,7 +135,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -181,24 +181,57 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="GOAP\Actions\Action_KillEnemyShotgun.h" />
+    <ClInclude Include="GOAP\Actions\Action_SearchEnemy.h" />
+    <ClInclude Include="GOAP\Actions\Action_KillEnemyPistol.h" />
+    <ClInclude Include="GOAP\Actions\Action_FleePurgezone.h" />
+    <ClInclude Include="GOAP\Actions\Action_DestroyGarbage.h" />
+    <ClInclude Include="GOAP\Actions\Action_Eat.h" />
+    <ClInclude Include="GOAP\Actions\Action_Heal.h" />
+    <ClInclude Include="GOAP\Actions\Action_SearchArea.h" />
+    <ClInclude Include="GOAP\Actions\Action_GrabShotgun.h" />
+    <ClInclude Include="GOAP\Actions\Action_GrabFood.h" />
+    <ClInclude Include="GOAP\Actions\Action_LootHouse.h" />
+    <ClInclude Include="GOAP\Actions\Action_GrabMedkit.h" />
+    <ClInclude Include="GOAP\Actions\Action_GrabPistol.h" />
     <ClInclude Include="FSM.h" />
-    <ClInclude Include="GOAP\Actions.h" />
+    <ClInclude Include="GOAP\Actions\Action_GoToClosestCell.h" />
     <ClInclude Include="GOAP\Data\EBlackboard.h" />
-    <ClInclude Include="GOAP\BaseAction.h" />
+    <ClInclude Include="GOAP\Actions\BaseAction.h" />
     <ClInclude Include="GOAP\Node.h" />
     <ClInclude Include="GOAP\Planner.h" />
+    <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="Plugin.h" />
     <ClInclude Include="SpacePartitioning.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="GOAP\WorldState.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FSM.cpp" />
-    <ClCompile Include="GOAP\Actions.cpp">
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../stdafx.h</PrecompiledHeaderFile>
+    <ClCompile Include="GOAP\Actions\Action_KillEnemyShotgun.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_SearchEnemy.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_KillEnemyPistol.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_FleePurgezone.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_DestroyGarbage.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_Eat.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_Heal.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_SearchArea.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_GrabShotgun.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_GrabFood.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_LootHouse.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_GrabMedkit.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="GOAP\BaseAction.cpp">
+    <ClCompile Include="GOAP\Actions\Action_GrabPistol.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="FSM.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_GoToClosestCell.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="GOAP\Actions\BaseAction.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../stdafx.h</PrecompiledHeaderFile>

@@ -6,7 +6,6 @@
 
 // GOAP includes
 #include "GOAP/WorldState.h"
-#include "GOAP/BaseAction.h"
 #include "GOAP/Planner.h"
 #include "FSM.h"
 
@@ -15,6 +14,7 @@
 
 class IBaseInterface;
 class IExamInterface;
+class BaseAction;
 
 class Plugin final : public IExamPlugin
 {
@@ -53,21 +53,16 @@ private:
 
 	// Aquired entities
 	std::vector<EntityInfo>* m_pAquiredEntities;
-	std::vector<Elite::Vector2>* m_pAquiredPistols;
-	std::vector<Elite::Vector2>* m_pAquiredShotguns;
-	std::vector<Elite::Vector2>* m_pAquiredMedkits;
-	std::vector<Elite::Vector2>* m_pAquiredFood;
-	std::vector<Elite::Vector2>* m_pAquiredGarbage;
+	std::vector<EntityInfo>* m_pAquiredPistols;
+	std::vector<EntityInfo>* m_pAquiredShotguns;
+	std::vector<EntityInfo>* m_pAquiredMedkits;
+	std::vector<EntityInfo>* m_pAquiredFood;
+	std::vector<EntityInfo>* m_pAquiredGarbage;
 	std::vector<HouseInfo_Extended>* m_pAquiredHouses;
 	
 	// In current FOV
-	std::vector<EntityInfo> m_PistolsInFOV;
-	std::vector<EntityInfo> m_ShotgunsInFOV;
-	std::vector<EntityInfo> m_MedkitsInFOV;
-	std::vector<EntityInfo> m_FoodInFOV;
-	std::vector<EntityInfo> m_GarbageInFOV;
+	PurgeZoneInfo m_PurgeZoneInFOV;
 	std::vector<EnemyInfo> m_EnemiesInFOV;
-	PurgeZoneInfo m_PurgeZoneInFov;
 
 	float m_FrameTime = 0.f;
 
@@ -98,7 +93,7 @@ private:
 
 	// Helpers
 	bool CheckForPurgeZone();
-	template<typename T> void SortEntitiesByDistance(std::vector<T>& entities);
+	template<typename T> void SortEntitiesByDistance(std::vector<T>* entities);
 	void UpdateHouseInfo();
 };
 
