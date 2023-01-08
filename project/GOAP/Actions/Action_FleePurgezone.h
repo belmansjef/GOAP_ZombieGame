@@ -10,11 +10,13 @@ namespace GOAP
 
 		virtual bool IsDone() override;
 		virtual void Reset() override;
+		virtual bool RequiresInRange() override { return false; }
 
 		virtual bool IsValid(Elite::Blackboard* pBlackboard) override;
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
 		bool m_FleedPurgezone;
+		SteeringPlugin_Output* m_pSteering;
 	};
 }

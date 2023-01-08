@@ -23,6 +23,9 @@
     <ClCompile Include="GOAP\Actions\Action_KillEnemyPistol.cpp" />
     <ClCompile Include="GOAP\Actions\Action_SearchEnemy.cpp" />
     <ClCompile Include="GOAP\Actions\Action_KillEnemyShotgun.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_ClearPistol.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_ClearShotgun.cpp" />
+    <ClCompile Include="GOAP\Actions\Action_ClearMedkit.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Plugin.h" />
@@ -49,5 +52,8 @@
     <ClInclude Include="GOAP\Actions\Action_SearchEnemy.h" />
     <ClInclude Include="GOAP\Actions\Action_KillEnemyShotgun.h" />
     <ClInclude Include="MathHelpers.h" />
+    <ClInclude Include="GOAP\Actions\Action_ClearPistol.h" />
+    <ClInclude Include="GOAP\Actions\Action_ClearShotgun.h" />
+    <ClInclude Include="GOAP\Actions\Action_ClearMedkit.h" />
   </ItemGroup>
 </Project>

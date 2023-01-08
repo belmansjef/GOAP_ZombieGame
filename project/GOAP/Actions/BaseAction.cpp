@@ -53,3 +53,20 @@ GOAP::WorldState GOAP::BaseAction::ActOn(const WorldState& ws) const
     }
     return tmp;
 }
+
+EntityInfo* GOAP::BaseAction::GetClosestEntity() const
+{
+    float closestDist{ FLT_MAX };
+    EntityInfo* closestEntity{ nullptr };
+    for (auto& entity : *m_pEntities)
+    {
+        const float dist{ entity.Location.DistanceSquared(m_AgentInfo.Position) };
+        if (dist < closestDist)
+        {
+            closestEntity = &entity;
+            closestDist = dist;
+        }
+    }
+
+    return closestEntity;
+}

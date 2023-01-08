@@ -117,6 +117,8 @@ enum class Corner{ BottomLeft, TopLeft, BottomRight, TopRight };
 
 struct HouseInfo_Extended : HouseInfo
 {
+	int itemsLootedSinceLastVisit;
+	int itemsLootedReactivation;
 	float TimeSinceLastVisit;
 	float ReactivationTime;
 	bool AreaSearched;
@@ -134,17 +136,53 @@ struct HouseInfo_Extended : HouseInfo
 		};
 	};
 
+	std::vector<Elite::Vector2> GetRectPointsInnerWall() const
+	{
+		return
+		{
+			{ Location - Size / 2.f + Elite::Vector2{2.5f, 2.5f} },
+			{ Location.x - Size.x / 2.f + 2.5f , Location.y + Size.y / 2.f - 2.5f },
+			{ Location + Size / 2.f - Elite::Vector2{2.5f, 2.5f}},
+			{ Location.x + Size.x / 2.f - 2.5f, Location.y - Size.y / 2.f + 2.5f }
+		};
+	};
+
+	std::vector<Elite::Vector2> GetMidPoints() const
+	{
+		return
+		{
+			{ Location.x + Size.x / 3.5f, Location.y},
+			{ Location.x, Location.y - Size.y / 3.5f},
+			{ Location.x - Size.x / 3.5f, Location.y},
+			{ Location.x, Location.y + Size.y / 3.5f},
+		};
+	}
+
 	std::vector<Elite::Vector2> GetCorners() const
 	{
 		return
 		{
-			{ Location - Size / 2.f + Elite::Vector2{5.f, 5.f} },
-			{ Location.x - Size.x / 2.f + 5.f, Location.y + Size.y / 2.f - 5.f },
-			{ Location + Size / 2.f - Elite::Vector2{5.f, 5.f} },
-			{ Location.x + Size.x / 2.f - 5.f, Location.y - Size.y / 2.f + 5.f }
+			{ Location - Size / 4.5f },
+			{ Location.x - Size.x / 4.5f, Location.y + Size.y / 4.5f },
+			{ Location + Size / 4.5f },
+			{ Location.x + Size.x / 4.5f, Location.y - Size.y / 4.5f }
 		};
 	};
-	bool HasRecentlyVisited() const { return TimeSinceLastVisit < ReactivationTime; }
+
+	bool IsPositionInsideWall(const Elite::Vector2& pos) const
+	{
+		auto rectPoints{ GetRectPoints() };
+		const float wallThickness{ 3.f };
+		
+		return
+			pos.x >= rectPoints[0].x && pos.x <= rectPoints[3].x && pos.y >= rectPoints[0].y - wallThickness && pos.y <= rectPoints[0].y + wallThickness || // Bottom wall
+			pos.x >= rectPoints[1].x && pos.x <= rectPoints[2].x && pos.y >= rectPoints[1].y - wallThickness && pos.y <= rectPoints[1].y + wallThickness || // Top wall
+			pos.x >= rectPoints[0].x - wallThickness && pos.x <= rectPoints[0].x + wallThickness && pos.y >= rectPoints[0].y && pos.y <= rectPoints[1].y || // Left Wall
+			pos.x >= rectPoints[2].x - wallThickness && pos.x <= rectPoints[2].x + wallThickness && pos.y >= rectPoints[2].y && pos.y <= rectPoints[3].y; // Right Wall
+
+	}
+
+	bool HasRecentlyVisited() const { return TimeSinceLastVisit < ReactivationTime || itemsLootedSinceLastVisit < itemsLootedReactivation; }
 	bool operator==(const HouseInfo_Extended& rhs) { return Location == rhs.Location; }
 	bool operator==(const HouseInfo& rhs) { return Location == rhs.Location; }
 };

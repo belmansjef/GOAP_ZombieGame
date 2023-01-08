@@ -13,6 +13,7 @@ GOAP::Action_SearchArea::Action_SearchArea()
 {
 	SetPrecondition("all_houses_looted", true);
 	SetEffect("all_areas_searched", true);
+	SetEffect("house_aquired", true);
 }
 
 bool GOAP::Action_SearchArea::IsDone()
@@ -45,12 +46,12 @@ bool GOAP::Action_SearchArea::IsValid(Elite::Blackboard* pBlackboard)
 	if (!pBlackboard->GetData("WorldState", m_pWorldState) || m_pWorldState == nullptr) return false;
 	if (!pBlackboard->GetData("Houses", m_pHouses) || m_pHouses == nullptr || m_pHouses->empty()) return false;
 	
-	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
+	m_AgentInfo = m_pInterface->Agent_GetInfo();
 	HouseInfo_Extended* pHouse{ nullptr };
 	float closestDist{ FLT_MAX };
 	for (auto& house : *m_pHouses)
 	{
-		const float dist{ house.Location.DistanceSquared(agentInfo.Position) };
+		const float dist{ house.Location.DistanceSquared(m_AgentInfo.Position) };
 		if (!house.AreaSearched && dist < closestDist)
 		{
 			pHouse = &house;
@@ -78,20 +79,20 @@ bool GOAP::Action_SearchArea::IsValid(Elite::Blackboard* pBlackboard)
 bool GOAP::Action_SearchArea::Execute(Elite::Blackboard* pBlackboard)
 {
 	// Get next corner
-	const AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
-	const Elite::Vector2 nextCorner{ GetNextCorner() };
+	m_AgentInfo = m_pInterface->Agent_GetInfo();
+	Elite::Vector2 nextCorner{ GetNextCorner() };
 
 	// Move towards next corner
-	m_pSteering->LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(nextCorner) - agentInfo.Position).GetNormalized();
-	m_pSteering->LinearVelocity *= agentInfo.MaxLinearSpeed;
+	m_pSteering->LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(nextCorner) - m_AgentInfo.Position).GetNormalized();
+	m_pSteering->LinearVelocity *= m_AgentInfo.MaxLinearSpeed;
 
-	if (agentInfo.Stamina >= 5.f)
+	if (m_AgentInfo.Stamina >= 5.f)
 		m_pSteering->RunMode = true;
-	else if (agentInfo.Stamina == 0.f)
+	else if (m_AgentInfo.Stamina == 0.f)
 		m_pSteering->RunMode = false;
 
 	// Check if we're at the next corner
-	if (agentInfo.Position.DistanceSquared(nextCorner) <= agentInfo.GrabRange * agentInfo.GrabRange)
+	if (m_AgentInfo.Position.DistanceSquared(nextCorner) <= (m_AgentInfo.GrabRange * m_AgentInfo.GrabRange) + 20.f)
 	{
 		switch (m_pHouse->NextCornerAreaSearch)
 		{
@@ -122,15 +123,17 @@ Elite::Vector2 GOAP::Action_SearchArea::GetNextCorner() const
 	switch (m_pHouse->NextCornerAreaSearch)
 	{
 	case Corner::TopLeft:
-		return { m_pHouse->Location.x - m_pHouse->Size.x / 2.f - 7.5f, m_pHouse->Location.y + m_pHouse->Size.y / 2.f + 7.5f };
+		return { m_pHouse->Location.x - m_pHouse->Size.x / 2.f - 5.f, m_pHouse->Location.y + m_pHouse->Size.y / 2.f + 5.f };
 	case Corner::TopRight:
-		return { m_pHouse->Location + m_pHouse->Size / 2.f + Elite::Vector2{7.5f, 7.5f} };
+		return { m_pHouse->Location + m_pHouse->Size / 2.f + Elite::Vector2{5.f, 5.f} };
 	case Corner::BottomRight:
-		return { m_pHouse->Location.x + m_pHouse->Size.x / 2.f + 7.5f, m_pHouse->Location.y - m_pHouse->Size.y / 2.f - 7.5f };
+		return { m_pHouse->Location.x + m_pHouse->Size.x / 2.f + 5.f, m_pHouse->Location.y - m_pHouse->Size.y / 2.f - 5.f };
 	case Corner::BottomLeft:
-		return { m_pHouse->Location - m_pHouse->Size / 2.f - Elite::Vector2{7.5f, 7.5f} };
+		return { m_pHouse->Location - m_pHouse->Size / 2.f - Elite::Vector2{5.f, 5.f} };
 	}
 
 	std::cout << "Defaulting" << std::endl;
 	return m_pHouse->Location;
+
+
 }

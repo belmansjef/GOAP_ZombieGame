@@ -11,8 +11,10 @@ GOAP::Action_GrabFood::Action_GrabFood()
 	, m_SecondInventorySlot(4U)
 {
 	SetPrecondition("food_aquired", true);
+	SetPrecondition("food_inventory_full", false);
 	SetEffect("food_inventory_full", true);
 	SetEffect("food_in_inventory", true);
+	SetEffect("food_grabbed", true);
 }
 
 bool GOAP::Action_GrabFood::IsDone()
@@ -26,6 +28,11 @@ void GOAP::Action_GrabFood::Reset()
 	m_FoodGrabbed = false;
 }
 
+int GOAP::Action_GrabFood::GetCost() const
+{
+	return static_cast<int>(m_pTarget->Location.Distance(m_AgentInfo.Position));
+}
+
 #pragma warning( push )
 #pragma warning( disable : 6011)
 bool GOAP::Action_GrabFood::IsValid(Elite::Blackboard* pBlackboard)
@@ -34,25 +41,9 @@ bool GOAP::Action_GrabFood::IsValid(Elite::Blackboard* pBlackboard)
 	if (!pBlackboard->GetData("WorldState", m_pWorldState) || m_pWorldState == nullptr) return false;
 	if (!pBlackboard->GetData("Food", m_pEntities) || m_pEntities == nullptr || m_pEntities->empty()) return false;
 
-	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
-	float closestDist{ FLT_MAX };
-	EntityInfo* closestEntity{ nullptr };
-	for (auto& entity : *m_pEntities)
-	{
-		const float dist{ entity.Location.DistanceSquared(agentInfo.Position) };
-		if (dist < closestDist)
-		{
-			closestEntity = &entity;
-			closestDist = dist;
-		}
-	}
-
-	if (closestEntity != nullptr)
-	{
-		m_pTarget = closestEntity;
-	}
-
-	return m_pTarget != nullptr;
+	m_AgentInfo = m_pInterface->Agent_GetInfo();
+	m_pTarget = GetClosestEntity();
+	return m_pTarget != nullptr || !m_pWorldState->GetVariable("all_houses_looted");
 }
 #pragma warning( pop )
 
@@ -82,6 +73,7 @@ bool GOAP::Action_GrabFood::Execute(Elite::Blackboard* pBlackboard)
 		pEntities->erase(std::find(pEntities->begin(), pEntities->end(), *m_pTarget));
 
 		m_pEntities->erase(std::find(m_pEntities->begin(), m_pEntities->end(), *m_pTarget));
+		m_pWorldState->SetVariable("item_looted", true);
 		return m_FoodGrabbed = true;
 	}
 

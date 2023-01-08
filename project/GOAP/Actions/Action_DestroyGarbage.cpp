@@ -31,34 +31,8 @@ bool GOAP::Action_DestroyGarbage::IsValid(Elite::Blackboard* pBlackboard)
 	if (!pBlackboard->GetData("WorldState", m_pWorldState) || m_pWorldState == nullptr) return false;
 	if (!pBlackboard->GetData("Garbage", m_pEntities) || m_pEntities == nullptr || m_pEntities->empty()) return false;
 
-	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
-	float closestDist{ FLT_MAX };
-	EntityInfo* closestEntity{ nullptr };
-	for (auto& entity : *m_pEntities)
-	{
-		ItemInfo item;
-		if (m_pInterface->Item_GetInfo(entity, item))
-		{
-			if (item.Type != eItemType::GARBAGE)
-			{
-				m_pEntities->erase(std::find(m_pEntities->begin(), m_pEntities->end(), entity));
-				continue;
-			}
-		}
-
-		const float dist{ entity.Location.DistanceSquared(agentInfo.Position) };
-		if (dist < closestDist)
-		{
-			closestEntity = &entity;
-			closestDist = dist;
-		}
-	}
-
-	if (closestEntity != nullptr)
-	{
-		m_pTarget = closestEntity;
-	}
-
+	m_AgentInfo = m_pInterface->Agent_GetInfo();
+	m_pTarget = GetClosestEntity();
 	return m_pTarget != nullptr;
 }
 #pragma warning( pop )

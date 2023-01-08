@@ -1,14 +1,12 @@
 #pragma once
 #include "BaseAction.h"
 
-class IExamInterface;
-
 namespace GOAP
 {
-	class Action_GrabPistol final : public BaseAction
+	class Action_ClearPistol final : public BaseAction
 	{
 	public:
-		Action_GrabPistol();
+		Action_ClearPistol();
 
 		virtual bool IsDone() override;
 		virtual void Reset() override;
@@ -18,7 +16,6 @@ namespace GOAP
 		virtual bool Execute(Elite::Blackboard* pBlackboard) override;
 
 	private:
-		bool m_PistolGrabbed;
-		UINT m_InventorySlot;
+		bool m_PistolCleared;
 	};
 }

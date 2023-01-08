@@ -45,7 +45,7 @@ CellSpace::CellSpace(float width, float height, int rows, int cols)
 		for (int y{ -m_NrOfCols / 2 }; y < m_NrOfCols / 2; ++y)
 		{
 			m_Cells.push_back(Cell(m_CellWidth * y, m_CellHeight * x, m_CellWidth, m_CellHeight));
-			if ((abs(y) == 6 && x <= 6 && x >= -6) || abs(x) == 6 && y <= 6 && y >= -6)
+			if ((abs(y) == 6 && x <= 6 && x >= -6) || abs(x) == 6 && y <= 6 && y >= -6 || (x >= -1 && x <= 0 && y >= -1 && y <= 0))
 			{
 				m_ExplorationPath.push_back(m_Cells.back());
 			}

@@ -80,15 +80,24 @@ bool GOAP::Goal_EliminateThreat::IsValid(const WorldState& ws) const
         (ws.GetVariable("pistol_in_inventory") || ws.GetVariable("shotgun_in_inventory") || ws.GetVariable("pistol_aquired") || ws.GetVariable("shotgun_aquired"));
 }
 
-
-bool GOAP::Goal_ReplenishHealth::IsValid(const WorldState& ws) const
+bool GOAP::Goal_LootFood::IsValid(const WorldState& ws) const
 {
-    return ws.GetVariable("low_health") && (ws.GetVariable("medkit_aquired") || ws.GetVariable("medkit_in_inventory"));
+    return ws.GetVariable("food_aquired") && !ws.GetVariable("food_inventory_full");
+}
+
+bool GOAP::Goal_LootMedkit::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("medkit_aquired") && !ws.GetVariable("health_full");
 }
 
 bool GOAP::Goal_ReplenishEnergy::IsValid(const WorldState& ws) const
 {
-    return ws.GetVariable("low_energy") && (ws.GetVariable("food_aquired") || ws.GetVariable("food_in_inventory"));
+    return ws.GetVariable("low_energy") && (!ws.GetVariable("all_houses_looted") || ws.GetVariable("food_aquired") || ws.GetVariable("food_in_inventory"));
+}
+
+bool GOAP::Goal_ReplenishHealth::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("low_health") && (!ws.GetVariable("all_houses_looted") || ws.GetVariable("medkit_aquired") || ws.GetVariable("medkit_in_inventory"));
 }
 
 bool GOAP::Goal_LootPistol::IsValid(const WorldState& ws) const
@@ -101,19 +110,14 @@ bool GOAP::Goal_LootShotgun::IsValid(const WorldState& ws) const
     return ws.GetVariable("shotgun_aquired") && !ws.GetVariable("shotgun_in_inventory");
 }
 
-bool GOAP::Goal_LootFood::IsValid(const WorldState& ws) const
-{
-    return ws.GetVariable("food_aquired") && !ws.GetVariable("food_inventory_full");
-}
-
-bool GOAP::Goal_LootMedkit::IsValid(const WorldState& ws) const
-{
-    return ws.GetVariable("medkit_aquired") && !ws.GetVariable("medkit_in_inventory");
-}
-
 bool GOAP::Goal_ClearGarbage::IsValid(const WorldState& ws) const
 {
     return ws.GetVariable("garbage_aquired");
+}
+
+bool GOAP::Goal_ClearGround::IsValid(const WorldState& ws) const
+{
+    return ws.GetVariable("pistol_limit_reached") || ws.GetVariable("shotgun_limit_reached") || ws.GetVariable("medkit_limit_reached");
 }
 
 bool GOAP::Goal_LootHouse::IsValid(const WorldState& ws) const

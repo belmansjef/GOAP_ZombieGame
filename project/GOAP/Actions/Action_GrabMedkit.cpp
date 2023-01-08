@@ -12,6 +12,7 @@ GOAP::Action_GrabMedkit::Action_GrabMedkit()
 	SetPrecondition("medkit_aquired", true);
 	SetPrecondition("medkit_in_inventory", false);
 	SetEffect("medkit_in_inventory", true);
+	SetEffect("medkit_grabbed", true);
 }
 
 bool GOAP::Action_GrabMedkit::IsDone()
@@ -25,6 +26,11 @@ void GOAP::Action_GrabMedkit::Reset()
 	m_MedkitGrabbed = false;
 }
 
+int GOAP::Action_GrabMedkit::GetCost() const
+{
+	return static_cast<int>(m_pTarget->Location.Distance(m_AgentInfo.Position));
+}
+
 #pragma warning( push )
 #pragma warning( disable : 6011)
 bool GOAP::Action_GrabMedkit::IsValid(Elite::Blackboard* pBlackboard)
@@ -33,25 +39,9 @@ bool GOAP::Action_GrabMedkit::IsValid(Elite::Blackboard* pBlackboard)
 	if (!pBlackboard->GetData("WorldState", m_pWorldState) || m_pWorldState == nullptr) return false;
 	if (!pBlackboard->GetData("Medkits", m_pEntities) || m_pEntities == nullptr || m_pEntities->empty()) return false;
 	
-	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
-	float closestDist{ FLT_MAX };
-	EntityInfo* closestEntity{ nullptr };
-	for (auto& entity : *m_pEntities)
-	{
-		const float dist{ entity.Location.DistanceSquared(agentInfo.Position) };
-		if (dist < closestDist)
-		{
-			closestEntity = &entity;
-			closestDist = dist;
-		}
-	}
-
-	if (closestEntity != nullptr)
-	{
-		m_pTarget = closestEntity;
-	}
-
-	return m_pTarget != nullptr;
+	m_AgentInfo = m_pInterface->Agent_GetInfo();
+	m_pTarget = GetClosestEntity();
+	return m_pTarget != nullptr || !m_pWorldState->GetVariable("all_houses_looted");
 }
 #pragma warning( pop )
 
@@ -70,6 +60,7 @@ bool GOAP::Action_GrabMedkit::Execute(Elite::Blackboard* pBlackboard)
 
 		m_pEntities->erase(std::find(m_pEntities->begin(), m_pEntities->end(), *m_pTarget));
 		m_pWorldState->SetVariable("medkit_in_inventory", true);
+		m_pWorldState->SetVariable("item_looted", true);
 		return m_MedkitGrabbed = true;
 	}
 

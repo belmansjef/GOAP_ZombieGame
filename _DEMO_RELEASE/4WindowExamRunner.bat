@@ -1,10 +1,9 @@
-start GPP_TEST_RELEASE.exe -x 0 -y 30 -s 15
-
-start GPP_TEST_RELEASE.exe -x 850 -y 30 -s 9
-
-start GPP_TEST_RELEASE.exe -x 0 -y 525 -s 3
-
-start GPP_TEST_RELEASE.exe -x 850 -y 525 -s 18
+start GPP_TEST_RELEASE.exe -x 0 -y 30 -s 3
+start GPP_TEST_RELEASE.exe -x 480 -y 30 -s 3
+start GPP_TEST_RELEASE.exe -x 960 -y 30 -s 3
+start GPP_TEST_RELEASE.exe -x 0 -y 490 -s 3
+start GPP_TEST_RELEASE.exe -x 480 -y 490 -s 3
+start GPP_TEST_RELEASE.exe -x 960 -y 490 -s 3
 
 echo new ActiveXObject("WScript.Shell").AppActivate("GPP_TEST_RELEASE.exe"); > tmp.js
 cscript //nologo tmp.js & del tmp.js

@@ -11,12 +11,17 @@ GOAP::Action_Heal::Action_Heal()
 {
 	SetPrecondition("medkit_in_inventory", true);
 	SetEffect("low_health", false);
+	SetEffect("medkit_in_inventory", false);
 }
 
 bool GOAP::Action_Heal::IsDone()
 {
-	m_pWorldState->SetVariable("low_health", !m_Healed);
-	m_pWorldState->SetVariable("medkit_in_inventory", !m_Healed);
+	if (m_Healed)
+	{
+		m_pWorldState->SetVariable("low_health", false);
+		m_pWorldState->SetVariable("medkit_in_inventory", false);
+	}
+	
 	return m_Healed;
 }
 
@@ -33,7 +38,7 @@ bool GOAP::Action_Heal::IsValid(Elite::Blackboard* pBlackboard)
 	if (!pBlackboard->GetData("Interface", m_pInterface) || m_pInterface == nullptr) return false;
 	if (!pBlackboard->GetData("WorldState", m_pWorldState) || m_pWorldState == nullptr) return false;
 
-	return m_pWorldState->GetVariable("medkit_in_inventory") || m_pWorldState->GetVariable("medkit_aquired");
+	return m_pWorldState->GetVariable("medkit_in_inventory") || m_pWorldState->GetVariable("medkit_aquired") || !m_pWorldState->GetVariable("all_houses_looted");;
 }
 #pragma warning( pop ) 
 

@@ -125,6 +125,8 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
                 // Skip if already closed -- in other words, we've already got an action that gets us here
                 if (IsMemberOfClosed(outcome)) continue;
 
+                // std::cout << "action [" << potential_action->GetName() << "] costs " << potential_action->GetCost() << std::endl;
+
                 // Look for a Node with this WorldState on the open list.
                 auto potential_outcome_node = IsMemberOfOpen(outcome);
                 if (potential_outcome_node == end(m_OpenList))

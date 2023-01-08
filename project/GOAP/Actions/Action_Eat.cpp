@@ -11,6 +11,7 @@ GOAP::Action_Eat::Action_Eat()
 	, m_SecondInventorySlot(4U)
 {
 	SetPrecondition("food_in_inventory", true);
+	SetEffect("food_inventory_full", false);
 	SetEffect("low_energy", false);
 }
 
@@ -32,7 +33,7 @@ bool GOAP::Action_Eat::IsValid(Elite::Blackboard* pBlackboard)
 	if (!pBlackboard->GetData("Interface", m_pInterface) || m_pInterface == nullptr) return false;
 	if (!pBlackboard->GetData("WorldState", m_pWorldState) || m_pWorldState == nullptr) return false;
 
-	return m_pWorldState->GetVariable("food_in_inventory") || m_pWorldState->GetVariable("food_aquired");
+	return m_pWorldState->GetVariable("food_in_inventory") || m_pWorldState->GetVariable("food_aquired") || !m_pWorldState->GetVariable("all_houses_looted");
 }
 #pragma warning( pop ) 
 

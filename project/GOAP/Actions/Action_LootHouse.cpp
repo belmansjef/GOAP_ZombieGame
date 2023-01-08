@@ -14,6 +14,15 @@ GOAP::Action_LootHouse::Action_LootHouse()
 {
 	SetPrecondition("house_aquired", true);
 	SetEffect("house_looted", true);
+	SetEffect("pistol_aquired", true);
+	SetEffect("pistol_in_inventory", true);
+	SetEffect("shotgun_aquired", true);
+	SetEffect("shotgun_in_inventory", true);
+	SetEffect("medkit_aquired", true);
+	SetEffect("medkit_in_inventory", true);
+	SetEffect("food_aquired", true);
+	SetEffect("food_in_inventory", true);
+	SetEffect("garbage_aquired", true);
 }
 
 bool GOAP::Action_LootHouse::IsDone()
@@ -21,10 +30,12 @@ bool GOAP::Action_LootHouse::IsDone()
 	if (m_HouseLooted)
 	{
 		m_pHouse->TimeSinceLastVisit = 0.f;
+		m_pHouse->itemsLootedSinceLastVisit = 0;
+		m_pHouse->NextCornerHouseSearch = Corner::BottomLeft;
 		m_pSteering->LinearVelocity = Elite::ZeroVector2;
-		return true;
 	}
-	return false;
+
+	return m_HouseLooted;
 }
 
 void GOAP::Action_LootHouse::Reset()
@@ -35,6 +46,11 @@ void GOAP::Action_LootHouse::Reset()
 	m_pHouse = nullptr;
 }
 
+int GOAP::Action_LootHouse::GetCost() const
+{
+	// Magic number +10 to give preference to grabbing an item inside the house instead of continueing to search the house
+	return static_cast<int>(m_pHouse->Location.Distance(m_AgentInfo.Position)) + 10;
+}
 
 #pragma warning( push )
 #pragma warning( disable : 6011)
@@ -45,11 +61,11 @@ bool GOAP::Action_LootHouse::IsValid(Elite::Blackboard* pBlackboard)
 	if (!pBlackboard->GetData("WorldState", m_pWorldState) || m_pWorldState == nullptr) return false;
 	if (!pBlackboard->GetData("Houses", m_pHouses) || m_pHouses == nullptr || m_pHouses->empty()) return false;
 
-	AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
+	m_AgentInfo = m_pInterface->Agent_GetInfo();
 	float closestDist{ FLT_MAX };
 	for (auto& house : *m_pHouses)
 	{
-		const float dist{ house.Location.DistanceSquared(agentInfo.Position) };
+		const float dist{ house.Location.DistanceSquared(m_AgentInfo.Position) };
 		if (!house.HasRecentlyVisited() && dist < closestDist)
 		{
 			m_pHouse = &house;
@@ -62,6 +78,7 @@ bool GOAP::Action_LootHouse::IsValid(Elite::Blackboard* pBlackboard)
 		EntityInfo* ei = new EntityInfo;
 		ei->Location = GetNextCorner();
 		m_pTarget = ei;
+		std::cout << "House size: " << m_pHouse->Size << std::endl;
 	}
 
 	return m_pTarget != nullptr;
@@ -71,15 +88,15 @@ bool GOAP::Action_LootHouse::IsValid(Elite::Blackboard* pBlackboard)
 bool GOAP::Action_LootHouse::Execute(Elite::Blackboard* pBlackboard)
 {
 	// Get next corner
-	const AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
+	m_AgentInfo = m_pInterface->Agent_GetInfo();
 	const Elite::Vector2 nextCorner{ GetNextCorner() };
 
 	// Move towards next corner
-	m_pSteering->LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(nextCorner) - agentInfo.Position).GetNormalized();
-	m_pSteering->LinearVelocity *= agentInfo.MaxLinearSpeed;
+	m_pSteering->LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(nextCorner) - m_AgentInfo.Position).GetNormalized();
+	m_pSteering->LinearVelocity *= m_AgentInfo.MaxLinearSpeed;
 
 	// Check if we're at the next corner
-	if (agentInfo.Position.DistanceSquared(nextCorner) <= agentInfo.GrabRange * agentInfo.GrabRange)
+	if (m_AgentInfo.Position.DistanceSquared(nextCorner) <= m_AgentInfo.GrabRange * m_AgentInfo.GrabRange)
 	{
 		switch (m_pHouse->NextCornerHouseSearch)
 		{
@@ -87,15 +104,19 @@ bool GOAP::Action_LootHouse::Execute(Elite::Blackboard* pBlackboard)
 			m_pHouse->NextCornerHouseSearch = Corner::TopLeft;
 			break;
 		case Corner::TopLeft:
-			m_pHouse->NextCornerHouseSearch = Corner::BottomRight;
-			if (m_pHouse->Size.y > 40.f && m_pHouse->Size.x < 20.f)
+			if (m_pHouse->Size.x < 40.f || m_pHouse->Size.y < 40.f)
+			{
+				m_pHouse->NextCornerHouseSearch = Corner::BottomLeft;
 				m_HouseLooted = true;
+				return true;
+			}
+			m_pHouse->NextCornerHouseSearch = Corner::BottomRight;
 			break;
 		case Corner::BottomRight:
 			m_pHouse->NextCornerHouseSearch = Corner::TopRight;
 			break;
 		case Corner::TopRight:
-			m_pHouse->NextCornerHouseSearch = Corner::TopLeft;
+			m_pHouse->NextCornerHouseSearch = Corner::BottomLeft;
 			m_HouseLooted = true;
 			break;
 		}
@@ -109,17 +130,42 @@ bool GOAP::Action_LootHouse::Execute(Elite::Blackboard* pBlackboard)
 
 Elite::Vector2 GOAP::Action_LootHouse::GetNextCorner() const
 {	
-	std::vector<Elite::Vector2> corners{ m_pHouse->GetCorners() };
-	switch (m_pHouse->NextCornerHouseSearch)
+	const std::vector<Elite::Vector2> corners{ m_pHouse->GetCorners() };
+	const std::vector<Elite::Vector2> midPoints{ m_pHouse->GetMidPoints() };
+
+	if (m_pHouse->Size.x >= 40.f && m_pHouse->Size.y >= 40.f)
 	{
-	case Corner::BottomLeft:
-		return corners[0];
-	case Corner::TopLeft:
-		return corners[1];
-	case Corner::BottomRight:
-		return corners[3];
-	case Corner::TopRight:
-		return corners[2];
+		switch (m_pHouse->NextCornerHouseSearch)
+		{
+		case Corner::BottomLeft:
+			return corners[0];
+		case Corner::TopLeft:
+			return corners[1];
+		case Corner::BottomRight:
+			return corners[3];
+		case Corner::TopRight:
+			return corners[2];
+		}
+	}
+	else if(m_pHouse->Size.x < 40.f)
+	{
+		switch (m_pHouse->NextCornerHouseSearch)
+		{
+		case Corner::BottomLeft:
+			return midPoints[1];
+		case Corner::TopLeft:
+			return midPoints[3];
+		}
+	}
+	else if (m_pHouse->Size.y < 40.f)
+	{
+		switch (m_pHouse->NextCornerHouseSearch)
+		{
+		case Corner::BottomLeft:
+			return midPoints[0];
+		case Corner::TopLeft:
+			return midPoints[2];
+		}
 	}
 
 	return corners[0];

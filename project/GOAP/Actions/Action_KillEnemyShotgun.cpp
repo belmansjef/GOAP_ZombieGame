@@ -58,10 +58,10 @@ bool GOAP::Action_KillEnemyShotgun::Execute(Elite::Blackboard* pBlackboard)
 
     m_LastShotTime += m_FrameTime;
 
-    const AgentInfo& agentInfo{ m_pInterface->Agent_GetInfo() };
-    const Elite::Vector2 dirVector = (m_Enemies.back().Location - agentInfo.Position).GetNormalized();
+    m_AgentInfo = m_pInterface->Agent_GetInfo();
+    const Elite::Vector2 dirVector = (m_Enemies.back().Location - m_AgentInfo.Position).GetNormalized();
     const float desiredOrientation{ Math::WrapOrientation(Elite::VectorToOrientation(dirVector)) };
-    const float currentOrientation{ Math::WrapOrientation(agentInfo.Orientation) };
+    const float currentOrientation{ Math::WrapOrientation(m_AgentInfo.Orientation) };
     float orientationDifference{ desiredOrientation - currentOrientation };
     
     // Wrap orientation to smallest angle
@@ -71,8 +71,8 @@ bool GOAP::Action_KillEnemyShotgun::Execute(Elite::Blackboard* pBlackboard)
     }
 
     m_pSteering->AutoOrient = false;
-    m_pSteering->LinearVelocity = (agentInfo.Position - m_pInterface->NavMesh_GetClosestPathPoint(m_Enemies.back().Location)).GetNormalized();
-    m_pSteering->LinearVelocity *= agentInfo.MaxLinearSpeed;
+    m_pSteering->LinearVelocity = (m_AgentInfo.Position - m_pInterface->NavMesh_GetClosestPathPoint(m_Enemies.back().Location)).GetNormalized();
+    m_pSteering->LinearVelocity *= m_AgentInfo.MaxLinearSpeed;
 
     // Looking at target
     if (abs(orientationDifference) <= m_AngleError)
@@ -85,7 +85,8 @@ bool GOAP::Action_KillEnemyShotgun::Execute(Elite::Blackboard* pBlackboard)
         m_pWorldState->SetVariable("in_danger", false);
 
         m_LastShotTime = 0.f;
-        if (!m_pInterface->Inventory_UseItem(m_InventorySlot))
+        ItemInfo weapon;
+        if (m_pInterface->Inventory_UseItem(m_InventorySlot) && m_pInterface->Inventory_GetItem(m_InventorySlot, weapon) && m_pInterface->Weapon_GetAmmo(weapon) == 0)
         {
             m_pInterface->Inventory_RemoveItem(m_InventorySlot);
             m_pWorldState->SetVariable("shotgun_in_inventory", false);

@@ -47,6 +47,7 @@ private:
 	float m_AngSpeed = 0.f; //Demo purpose
 
 	// World Info
+	const size_t m_GroundItemLimit{ 4 };
 	Elite::Vector2 m_WorldCenter;
 	Elite::Vector2 m_WorldDimensions;
 	std::vector<Elite::Vector2> m_WorldBoundaries;
@@ -84,6 +85,8 @@ private:
 
 	GOAP::WorldState* GetHighestPriorityGoal();
 	bool MoveAgent(GOAP::BaseAction* pAction);
+	const float m_AngleError{ 25.f };
+	bool m_IsPosInsideWall{ true };
 	
 	// Space Partitioning
 	CellSpace m_WorldGrid;

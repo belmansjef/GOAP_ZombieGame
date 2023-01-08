@@ -59,6 +59,7 @@ namespace GOAP
 		EntityInfo* m_pTarget;
 		WorldState* m_pWorldState;
 		IExamInterface* m_pInterface;
+		AgentInfo m_AgentInfo;
 		std::vector<EntityInfo>* m_pEntities;
 		
 		// Preconditions are predicates that must be satisfied
@@ -68,5 +69,7 @@ namespace GOAP
 		// Effects are the result of this action being taken.
 		// They most likely change certain vars in the current WorldState.
 		std::unordered_map<std::string, bool> m_Effects;
+
+		EntityInfo* GetClosestEntity() const;
 	};
 }
