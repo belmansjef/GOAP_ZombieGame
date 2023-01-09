@@ -37,13 +37,14 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#about-the-project">About The Project</a>
+      <a href="#about-this-project">About This Project</a>
     </li>
     <li>
       <a href="#what-is-goap">What Is GOAP?</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
+        <li><a href="#actions">Actions</a></li>
+        <li><a href="#states">States</a></li>
+        <li><a href="#planner">Planner</a></li>
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
@@ -55,8 +56,8 @@
   </ol>
 </details>
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+<!-- ABOUT THIS PROJECT -->
+## About This Project
 
 This project implements <a href="https://alumni.media.mit.edu/~jorkin/goap.html">Jeff Orkin's Goal-Oriented Action Planning</a> to help an AI agent survive a virtual 2D wasteland plagued with zombies coming for you (well, your brains to be more precise, if classic comics are to be believed).
 
@@ -66,8 +67,7 @@ Writen in C++, using the in-house engine developed by a few talented <a href="ht
 
 [![cpp][cpp]][cpp-url]
 <!-- What Is GOAP -->
-<a name="what-is-goap"></a>
-## What is GOAP?
+## What Is GOAP?
 
 If you were to ask a few hundred game developers to write down the most common way to implement AI in games, <a href="https://en.wikipedia.org/wiki/Finite-state_machine">Finite State Machines</a> (FSM) and <a href="https://en.wikipedia.org/wiki/Behavior_tree">Behaviour Trees</a> (BT) would surely top the charts. Almost every gameplay programmer has used, or at least heard of, Finite State Machines.
 
@@ -75,14 +75,25 @@ Goal-Oriented Action Planing (GOAP, rhymes with dope) is a planning architecture
 
 Compared to a traditional FSM where you would need to define every single transition between every single state, which gets tedious and cumbersome real fast as the number of states/actions grow, GOAP's FSM only ever uses three states. But how could a FSM with only three states navigate an agent through a wasteland whilst fighting of zombies, making sure to avoid starvation, I hear you ask? This is where the planning comes in to play. By giving the <a href="actions">planner</a> a list of <a href="actions">actions</a>, the current <a href="states">state</a> of the world and a desired world state, it will compute a sequence of actions to be taken to achieve said desired world state.
 
+GOAP saved this project from a FSM spiderweb like the one below:
+<br>
+<img src="https://github.com/belmansjef/GOAP_ZombieGame/blob/main/README/FSM.png" alt="A spiderweb FSM graph with states going all over the place">
+<br>
+GOAP nicely decouples everything to be easily maintainable:
+<br>
+<img src="https://github.com/belmansjef/GOAP_ZombieGame/blob/main/README/GOAP.png" alt="A nice and clean list of GOAP actions">
+<br>
+
+So you get the point, GOAP is a real life saver when dealing with AI that requires more than 4 states.
+
 <a name="actions"></a>
 ### Actions
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+An action is a little snippet of a plan, a step in a plan to achieve a goal. All actions are encapsulated and no two actions are ever aware of eachother. Each action has *effects* and *preconditions* which the planner uses to formulate a valid plan to achieve it's goal. There are both shotguns and pistols in the game, if the agent needs to eliminate a zombie and he doesn't have a shotgun equiped, he could go look for one in a nearby house and eliminate the zombie with it. But if they have a pistol equiped, they might just use that to eliminate the zombie. But how does the planner know which sequence of actions to take? All actions have a cost, the planner uses this to find the lowest cost path. Basic actions can have a preset cost value, but better, more dynamic actions have a procedural cost value.
+<br>
+<br>
+Picture this: the agent is shooting at a horde of zombies and their weapon runs out of ammo. They previously found a weapon in a house a few kilometers back, but couldn't carry it at that time since their backpack was full. It would be a great risk to try and run all the way back to grab that weapon. There's also a house only a few hundred meters away that they haven't looted yet. They might just try their luck and search it for a weapon, though no guarantees. In this case, you could give both actions of moving to a previously aquired weapon and searching a new house a dynamic cost based on the distance to the agent and the risk factor of searching a new house.
+
 <a name="states"></a>
 ### States
 
