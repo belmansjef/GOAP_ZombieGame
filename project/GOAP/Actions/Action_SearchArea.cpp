@@ -123,13 +123,13 @@ Elite::Vector2 GOAP::Action_SearchArea::GetNextCorner() const
 	switch (m_pHouse->NextCornerAreaSearch)
 	{
 	case Corner::TopLeft:
-		return { m_pHouse->Location.x - m_pHouse->Size.x / 2.f - 5.f, m_pHouse->Location.y + m_pHouse->Size.y / 2.f + 5.f };
+		return { m_pHouse->Location.x - m_pHouse->Size.x / 2.f - 7.5f, m_pHouse->Location.y + m_pHouse->Size.y / 2.f + 7.5f };
 	case Corner::TopRight:
-		return { m_pHouse->Location + m_pHouse->Size / 2.f + Elite::Vector2{5.f, 5.f} };
+		return { m_pHouse->Location + m_pHouse->Size / 2.f + Elite::Vector2{7.5f, 7.5f} };
 	case Corner::BottomRight:
-		return { m_pHouse->Location.x + m_pHouse->Size.x / 2.f + 5.f, m_pHouse->Location.y - m_pHouse->Size.y / 2.f - 5.f };
+		return { m_pHouse->Location.x + m_pHouse->Size.x / 2.f + 7.5f, m_pHouse->Location.y - m_pHouse->Size.y / 2.f - 7.5f };
 	case Corner::BottomLeft:
-		return { m_pHouse->Location - m_pHouse->Size / 2.f - Elite::Vector2{5.f, 5.f} };
+		return { m_pHouse->Location - m_pHouse->Size / 2.f - Elite::Vector2{7.5f, 7.5f} };
 	}
 
 	std::cout << "Defaulting" << std::endl;

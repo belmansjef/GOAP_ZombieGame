@@ -49,17 +49,17 @@ public:
 	void MarkCellAsVisited(const Elite::Vector2& agentPos);
 
 private:
-	std::vector<Cell> m_Cells;
-	std::vector<Cell> m_ExplorationPath;
+	std::vector<Cell> m_Cells{};
+	std::vector<Cell> m_ExplorationPath{};
 
-	float m_SpaceWidth;
-	float m_SpaceHeight;
+	float m_SpaceWidth{};
+	float m_SpaceHeight{};
 
-	int m_NrOfRows;
-	int m_NrOfCols;
+	int m_NrOfRows{};
+	int m_NrOfCols{};
 
 	const float m_VisitedDistance{ 100.f };
 
-	float m_CellWidth;
-	float m_CellHeight;
+	float m_CellWidth{};
+	float m_CellHeight{};
 };

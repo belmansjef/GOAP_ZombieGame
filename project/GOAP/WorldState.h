@@ -67,7 +67,7 @@ namespace GOAP
 	struct Goal_EliminateThreat final : WorldState
 	{
 	public:
-		Goal_EliminateThreat() : WorldState("Eliminate Threat", 150)
+		Goal_EliminateThreat() : WorldState("Eliminate Threat", 160)
 		{
 			SetVariable("in_danger", false);
 		};
@@ -77,9 +77,20 @@ namespace GOAP
 	struct Goal_LootFood final : WorldState
 	{
 	public:
-		Goal_LootFood() : WorldState("Loot Food", 140)
+		Goal_LootFood() : WorldState("Loot Food", 150)
 		{
 			SetVariable("food_grabbed", true);
+		};
+		virtual bool IsValid(const WorldState& ws) const override;
+	};
+
+
+	struct Goal_LootMedkit final : WorldState
+	{
+	public:
+		Goal_LootMedkit() : WorldState("Loot Medkit", 140)
+		{
+			SetVariable("medkit_grabbed", true);
 		};
 		virtual bool IsValid(const WorldState& ws) const override;
 	};
@@ -87,19 +98,9 @@ namespace GOAP
 	struct Goal_ReplenishEnergy final : WorldState
 	{
 	public:
-		Goal_ReplenishEnergy() : WorldState("Replenish Energy", 120)
+		Goal_ReplenishEnergy() : WorldState("Replenish Energy", 130)
 		{
 			SetVariable("low_energy", false);
-		};
-		virtual bool IsValid(const WorldState& ws) const override;
-	};
-
-	struct Goal_LootMedkit final : WorldState
-	{
-	public:
-		Goal_LootMedkit() : WorldState("Loot Medkit", 115)
-		{
-			SetVariable("medkit_grabbed", true);
 		};
 		virtual bool IsValid(const WorldState& ws) const override;
 	};
@@ -107,7 +108,7 @@ namespace GOAP
 	struct Goal_ReplenishHealth final : WorldState
 	{
 	public:
-		Goal_ReplenishHealth() : WorldState("Replenish Health", 110)
+		Goal_ReplenishHealth() : WorldState("Replenish Health", 120)
 		{
 			SetVariable("low_health", false);
 		};
@@ -144,22 +145,22 @@ namespace GOAP
 		virtual bool IsValid(const WorldState& ws) const override;
 	};
 
-	struct Goal_LootHouse final : WorldState
+	struct Goal_ClearGarbage final : WorldState
 	{
 	public:
-		Goal_LootHouse() : WorldState("Loot House", 60)
+		Goal_ClearGarbage() : WorldState("Clear Garbage", 60)
 		{
-			SetVariable("house_looted", true);
+			SetVariable("garbage_destroyed", true);
 		};
 		virtual bool IsValid(const WorldState& ws) const override;
 	};
 
-	struct Goal_ClearGarbage final : WorldState
+	struct Goal_LootHouse final : WorldState
 	{
 	public:
-		Goal_ClearGarbage() : WorldState("Clear Garbage", 55)
+		Goal_LootHouse() : WorldState("Loot House", 55)
 		{
-			SetVariable("garbage_destroyed", true);
+			SetVariable("house_looted", true);
 		};
 		virtual bool IsValid(const WorldState& ws) const override;
 	};

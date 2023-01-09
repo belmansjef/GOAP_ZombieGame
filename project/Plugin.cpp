@@ -420,7 +420,7 @@ void Plugin::GetNewHousesInFOV()
 				m_pAquiredHouses->back().AreaSearched = false;
 				m_pAquiredHouses->back().NextCornerAreaSearch = Corner::TopRight;
 				m_pAquiredHouses->back().NextCornerHouseSearch = Corner::BottomLeft;
-				m_pAquiredHouses->back().itemsLootedSinceLastVisit = m_pAquiredHouses->back().itemsLootedReactivation = 20;
+				m_pAquiredHouses->back().itemsLootedSinceLastVisit = m_pAquiredHouses->back().itemsLootedReactivation = 30;
 				m_pAquiredHouses->back().TimeSinceLastVisit = m_pAquiredHouses->back().ReactivationTime = 900.f;
 			}
 			continue;
@@ -701,10 +701,10 @@ void Plugin::UpdateHouseInfo()
 	m_WorldState.SetVariable("all_areas_searched", true);
 	for (auto& house : *m_pAquiredHouses)
 	{
-		if (m_pAquiredHouses->size() >= 19)
+		if (m_pAquiredHouses->size() >= 20)
 		{
-			house.ReactivationTime = 180.f;
-			house.itemsLootedReactivation = 8;
+			house.ReactivationTime = 210.f;
+			house.itemsLootedReactivation = 24;
 		}
 		house.TimeSinceLastVisit += m_FrameTime;
 
