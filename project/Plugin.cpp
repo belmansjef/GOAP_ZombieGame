@@ -703,7 +703,7 @@ void Plugin::UpdateHouseInfo()
 	{
 		if (m_pAquiredHouses->size() >= 20)
 		{
-			house.ReactivationTime = 210.f;
+			house.ReactivationTime = 240.f;
 			house.itemsLootedReactivation = 24;
 		}
 		house.TimeSinceLastVisit += m_FrameTime;
