@@ -53,6 +53,7 @@ bool GOAP::Action_ClearPistol::Execute(Elite::Blackboard* pBlackboard)
         pEntities->erase(std::find(pEntities->begin(), pEntities->end(), *m_pTarget));
 
         m_pEntities->erase(std::find(m_pEntities->begin(), m_pEntities->end(), *m_pTarget));
+        m_pWorldState->SetVariable("item_looted", true);
         return m_PistolCleared = true;
     }
 

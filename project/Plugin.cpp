@@ -590,16 +590,21 @@ bool Plugin::MoveAgent(GOAP::BaseAction* pAction)
 	m_Steering.AutoOrient = true;
 	const AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
 
-	// Target position might be inside wall, if so, move it closer to agent
-	for (auto& house : *m_pAquiredHouses)
+	if (m_IsPosInsideWall)
 	{
-		if (house.IsPositionInsideWall(pAction->GetTarget()->Location))
+		// Target position might be inside wall, if so, move it closer to agent
+		for (auto& house : *m_pAquiredHouses)
 		{
-			pAction->GetTarget()->Location += {25.f, 25.f};
-			std::cout << "moved target position outside wall!" << std::endl;
-			break;
+			if (house.IsPositionInsideWall(pAction->GetTarget()->Location))
+			{
+				pAction->GetTarget()->Location += {25.f, 25.f};
+				std::cout << "moved target position outside wall!" << std::endl;
+				m_IsPosInsideWall = false;
+				break;
+			}
 		}
 	}
+	
 
 	m_Steering.LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(pAction->GetTarget()->Location) - agentInfo.Position).GetNormalized();
 	m_Steering.LinearVelocity *= agentInfo.MaxLinearSpeed;
@@ -696,7 +701,7 @@ void Plugin::UpdateHouseInfo()
 	m_WorldState.SetVariable("all_areas_searched", true);
 	for (auto& house : *m_pAquiredHouses)
 	{
-		if (m_pAquiredHouses->size() >= 18)
+		if (m_pAquiredHouses->size() >= 19)
 		{
 			house.ReactivationTime = 180.f;
 			house.itemsLootedReactivation = 8;
