@@ -24,17 +24,16 @@
     <li>
       <a href="#what-is-goap">What Is GOAP?</a>
       <ul>
-        <li><a href="#actions">Actions</a></li>
+				<li><a href="#aad">Advantages And Disadvantages</a></li>
+				<li><a href="#actions">Actions</a></li>
         <li><a href="#states">WorldState</a></li>
         <li><a href="#planner">Planner</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
+		<li><a href="#sources">Sources</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
@@ -74,6 +73,23 @@ And it nicely decoupled everything to be easily maintainable:
 <br>
 
 So you get the point, GOAP is a real life saver when dealing with AI that requires more than 4 states.
+
+<a name="aad"></a>
+### Advantages And Disadvantages
+Before diving deeper into GOAP, we must first have it about who GOAP is for and who it's not.
+One of the major advantages of GOAP is it's ease of use, expandability and maintainability.
+Since every action lives on it's own and no transitions need to be defined between them, it's real easy to add more actions even late down the pipeline of development.
+GOAP makes the agent feel more "organic" and less predictable. The last might also be one of the disadvantages, depending on the type of application you're developing. In a fast-paced FPS you probably want the enemies to be predictable to ensure a nice, fast flow. For an agent that will only ever have a few states, GOAP is a bit *overkill*. In that case, I'd be faster to write a little FSM.
+
+#### Advantages:
+* Ease Of Use
+* Expendable
+* Maintainable
+* More organic looking agents
+
+#### Disdvantages:
+* Unpredictable
+* Overkill for a small agent
 
 <a name="actions"></a>
 ### Actions
@@ -161,11 +177,17 @@ It can not only be used to find the shortest and lowest cost path to a target, i
 <br>
 <img src="https://github.com/belmansjef/GOAP_ZombieGame/blob/main/README/GOAP_PlannerPath.png" alt="A graph showing every possible path towards a goal">
 <br>
-The values denoted over the arrows are the cost to execute the action. Let's dive a bit deeper under the hood of the planner!
+> The values denoted over the arrows are the cost to execute the action.
+
+<br>
+
+Let's dive a bit deeper under the hood of the planner!
 The planner has a method `FormulatePlan()` that returns a sequence of actions which takes the current state of the world, the desired "goal" state of the world and a list of actions.
+
 ```cpp
 std::vector<GOAP::BaseAction*> FormulatePlan(const WorldState& start, const WorldState& goal, std::vector<BaseAction*>& actions);
 ```
+
 `FormulatePlan()` starts with making sure that the provided goal isn't already met:
 ```cpp
 if (start.MeetsGoal(goal))
@@ -174,7 +196,19 @@ if (start.MeetsGoal(goal))
     return std::vector<BaseAction*>();
 }
 ```
-It then iterates over the list of actions, resets them and puts all the valid actions in a list. These are the actions the planner will use to try and formulate a valid plan. The A* search algorithm uses an `OpenList` and `ClosedList`, they contain nodes that still need to be checked and nodes that are already checked respectively.
+It then iterates over the list of actions, resets them and puts all the valid actions in a list. These are the actions the planner will use to try and formulate a valid plan. 
+```cpp
+std::vector<BaseAction*> usable_actions;
+for (auto& action : actions)
+{
+    action->Reset();
+    if (action->IsValid(pBlackboard))
+    {
+        usable_actions.push_back(action);
+    }
+}
+```
+The A* search algorithm uses an `OpenList` and `ClosedList`, they contain nodes that still need to be checked and nodes that are already checked respectively.
 Both lists get cleared and the first node gets added to the `OpenList`:
 ```cpp
 // Create the first node and push it to the openlist, the list of yet to be checked actions
@@ -201,53 +235,85 @@ int GOAP::WorldState::DistanceTo(const WorldState& goal_state) const
     return result;
 }
 ```
+While the `OpenList` contains nodes, the planner puts the first node on the closed list and keeps a reference to it. The `OpenList` gets sorted by f-cost, ascending, so the first element of the `OpenList` has the lowest f-cost. The f-cost, or "full"-cost, is the combined cost of the cost that got us to this node and the calculated cost to the destination node.
+```cpp
+// Get the node with the lowest f-cost, put it on the closed list
+// and get a reference to it
+Node& current(PopAndClose());
+```
+The planner then checks if the current node's state satisfies the goal and returns the action plan if it does.
+```cpp
+// Does the current state meet the goal's state?
+if (current.ws.MeetsGoal(goal))
+{
+	std::vector<BaseAction*> plan;
+	do
+	{
+		plan.emplace_back(current.action);
+		
+		// Search parent node on open list
+		auto it = std::find_if(begin(m_OpenList), end(m_OpenList), [&](const Node& n) { return n.id == current.parent_id; });
+		
+		// Parent node is not on the open list, search on closed list
+		if (it == end(m_OpenList))
+		{
+			it = std::find_if(begin(m_ClosedList), end(m_ClosedList), [&](const Node& n) { return n.id == current.parent_id; });
+		}
+		current = *it;
+	} while (current.parent_id != 0); // Walk back through the action sequence until we get to the start node
 
+	return plan;
+}
+```
+If the current node's state doesn't satisfy the goal state, the planner loops over all available actions. It then checks if the action's preconditions are met, if so, it applies it's effects to a copy of the current world state. It checks this copy of the world state with the nodes on the closed list, if the closed list already contains this exact world state, it skips the current action.
+```cpp
+ WorldState outcome = potential_action->ActOn(current.ws);
+
+// Skip if already closed -- in other words, we've already got an action that gets us here
+if (IsMemberOfClosed(outcome)) continue;
+```
+We then check the `OpenList` for a node with the current world state. If there is none, we create a new node with this world state and the current node as its parent and push it on the `OpenList`.
+```cpp
+// Look for a Node with this WorldState on the open list.
+auto potential_outcome_node = IsMemberOfOpen(outcome);
+if (potential_outcome_node == end(m_OpenList))
+{ 
+	// Not a member of open list
+    // Make a new node, with current node as its parent, recording G & H
+    Node newNode(outcome, current.g + potential_action->GetCost(), CalculateHeuristic(outcome, goal), current.id, potential_action);
+    // Add it to the open list (maintaining sort-order therein)
+    AddToOpenList(std::move(newNode));
+}
+```
+But if there's already a node with the current world state on the open list, we check if the current path is cheaper. If so, we update that node with our current, cheaper values. Lastely, we sort the open list on the f-cost, ascending.
+```cpp
+else
+{
+	// already a member of the open list
+	// check if the current G is better than the recorded G
+	if (current.g + potential_action->GetCost() < potential_outcome_node->g)
+	{    
+		potential_outcome_node->parent_id = current.id; // make current its parent
+		potential_outcome_node->g = current.g + potential_action->GetCost(); // recalc G & H
+		potential_outcome_node->h = CalculateHeuristic(outcome, goal);
+		potential_outcome_node->action = potential_action;
+
+		// resort open list to account for the new F
+		// sorting likely invalidates the potential_outcome_node iterator, but we don't need it anymore
+		std::sort(begin(m_OpenList), end(m_OpenList));
+	}
+}
+```
+
+And that's it! the planner repeats these steps untill the open list contains no more nodes. It'll then either have an optimal path or no path at all. In case of the latter, the main gameplay logic catches this and acts accordingly.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
-<!-- USAGE EXAMPLES -->
-## Implementation
-
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
+<!-- Conclusion -->
+## Conclusion
+Now that I know how GOAP works and how it can be applied to applications and games, I don't see a reason why I'd ever use a FSM again for big and complex projects that don't require predicatble agents. There is still a lot to be approved upon in this project. [Fuzzy Logic](https://en.wikipedia.org/wiki/Fuzzy_logic) could be used to determine which goal is to be set as the goal to achieve.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ROADMAP -->
-## Roadmap
-
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
-
-See the [open issues](https://github.com/belmansjef/GOAP_ZombieGame/issues) for a full list of proposed features (and known issues).
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- LICENSE -->
 ## License
@@ -256,12 +322,22 @@ Distributed under the GNU General Public License v3.0. See `LICENSE.txt` for mor
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+<!-- SOURCES -->
+## Sources
 
+* [I had heard of GOAP, but it was only a few weeks ago that I started diving into it. Jeff Orkin's website, the godfather of GOAP, has been my main source of knowledge.](https://alumni.media.mit.edu/~jorkin/goap.html)
+* [This document writen by Jeff Orkin himself is what got me to understand the general idea of GOAP and how it works.](https://alumni.media.mit.edu/~jorkin/gdc2006_orkin_jeff_fear.pdf)
+* [Big thanks to Chris Powell's implementation of GOAP. His examples really helped me get an idea of GOAPS general logic.](https://github.com/cpowell/cppGOAP)
+* [This blog with Unity demo helped me get a great understanding of procedural preconditions.](https://gamedevelopment.tutsplus.com/tutorials/goal-oriented-action-planning-for-a-smarter-ai--cms-20793)
+* [This GDC video from 2017 gave a nice insight into how the big studios implement and use GOAP in their games.](https://youtu.be/gm7K68663rA)
+* [This video by TheHappieCat did a real good job of explaining how every component of GOAP works and might be implemented.](https://youtu.be/n6vn7d5R_2c)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Belmans Jef - belmansjef@gmail.com
 
 Project Link: [https://github.com/belmansjef/GOAP_ZombieGame](https://github.com/belmansjef/GOAP_ZombieGame)
 
@@ -269,63 +345,9 @@ Project Link: [https://github.com/belmansjef/GOAP_ZombieGame](https://github.com
 
 
 
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* []()
-* []()
-* []()
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/belmansjef/GOAP_ZombieGame.svg?style=for-the-badge
-[contributors-url]: https://github.com/belmansjef/GOAP_ZombieGame/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/belmansjef/GOAP_ZombieGame.svg?style=for-the-badge
-[forks-url]: https://github.com/belmansjef/GOAP_ZombieGame/network/members
-[stars-shield]: https://img.shields.io/github/stars/belmansjef/GOAP_ZombieGame.svg?style=for-the-badge
-[stars-url]: https://github.com/belmansjef/GOAP_ZombieGame/stargazers
-[issues-shield]: https://img.shields.io/github/issues/belmansjef/GOAP_ZombieGame.svg?style=for-the-badge
-[issues-url]: https://github.com/belmansjef/GOAP_ZombieGame/issues
 [license-shield]: https://img.shields.io/github/license/belmansjef/GOAP_ZombieGame.svg?style=for-the-badge
 [license-url]: https://github.com/belmansjef/GOAP_ZombieGame/blob/main/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/linkedin_username
-[product-screenshot]: images/screenshot.png
 [cpp]: https://img.shields.io/badge/CPlusPlus-000000?style=for-the-badge&logo=cplusplus&logoColor=white
 [cpp-url]: https://en.cppreference.com/w/cpp/language
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
-[Vue-url]: https://vuejs.org/
-[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
-[Angular-url]: https://angular.io/
-[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
-[Svelte-url]: https://svelte.dev/
-[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
-[Laravel-url]: https://laravel.com
-[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
-[Bootstrap-url]: https://getbootstrap.com
-[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
-[JQuery-url]: https://jquery.com 
-
-# GOAP_ZombieGame
-Research done on GOAP (Goal Oriented Action Planning) applied to a zombie game developed using an in-house engine of DAE, a course at Howest, Belgium.
-
-## SOURCES ##
-Websites:
-
-https://alumni.media.mit.edu/~jorkin/goap.html
-https://jaredemitchell.com/goal-oriented-action-planning-research/
-https://medium.com/@vedantchaudhari/goal-oriented-action-planning-34035ed40d0b
-https://gamedevelopment.tutsplus.com/tutorials/goal-oriented-action-planning-for-a-smarter-ai--cms-20793
-
-Github:
-https://github.com/crashkonijn/GOAP
-
-Videos:
-https://www.youtube.com/watch?v=Q7aHXn_LypI
-https://www.youtube.com/watch?v=gm7K68663rA
