@@ -172,7 +172,7 @@ struct HouseInfo_Extended : HouseInfo
 	bool IsPositionInsideWall(const Elite::Vector2& pos) const
 	{
 		auto rectPoints{ GetRectPoints() };
-		const float wallThickness{ 2.75f };
+		const float wallThickness{ 0.75f };
 		
 		return
 			pos.x >= rectPoints[0].x && pos.x <= rectPoints[3].x && pos.y >= rectPoints[0].y - wallThickness && pos.y <= rectPoints[0].y + wallThickness || // Bottom wall

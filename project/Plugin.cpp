@@ -590,23 +590,23 @@ bool Plugin::MoveAgent(GOAP::BaseAction* pAction)
 	m_Steering.AutoOrient = true;
 	const AgentInfo agentInfo{ m_pInterface->Agent_GetInfo() };
 
+	Elite::Vector2 target{ m_pInterface->NavMesh_GetClosestPathPoint(pAction->GetTarget()->Location) };
 	if (m_IsPosInsideWall)
 	{
 		// Target position might be inside wall, if so, move it closer to agent
 		for (auto& house : *m_pAquiredHouses)
 		{
-			if (house.IsPositionInsideWall(pAction->GetTarget()->Location))
+			if (house.IsPositionInsideWall(target))
 			{
-				pAction->GetTarget()->Location += {25.f, 25.f};
+				const Elite::Vector2 dirVector{ (target - agentInfo.Position).GetNormalized() };
+				target += dirVector * 10.f;
 				std::cout << "moved target position outside wall!" << std::endl;
-				m_IsPosInsideWall = false;
 				break;
 			}
 		}
 	}
-	
 
-	m_Steering.LinearVelocity = (m_pInterface->NavMesh_GetClosestPathPoint(pAction->GetTarget()->Location) - agentInfo.Position).GetNormalized();
+	m_Steering.LinearVelocity = ((target) - agentInfo.Position).GetNormalized();
 	m_Steering.LinearVelocity *= agentInfo.MaxLinearSpeed;
 
 	if ((m_WorldState.GetVariable("in_danger") || m_WorldState.GetVariable("low_energy") || m_WorldState.GetVariable("low_health")) && agentInfo.Stamina >= 4.f)
@@ -701,7 +701,7 @@ void Plugin::UpdateHouseInfo()
 	m_WorldState.SetVariable("all_areas_searched", true);
 	for (auto& house : *m_pAquiredHouses)
 	{
-		if (m_pAquiredHouses->size() >= 20)
+		if (m_pAquiredHouses->size() >= 19)
 		{
 			house.ReactivationTime = 240.f;
 			house.itemsLootedReactivation = 24;
