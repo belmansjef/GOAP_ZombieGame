@@ -52,7 +52,7 @@ Writen in C++, using the in-house engine developed by a few talented <a href="ht
 
 If you were to ask a few hundred game developers to write down the most common way to implement AI in games, <a href="https://en.wikipedia.org/wiki/Finite-state_machine">Finite State Machines</a> (FSM) and <a href="https://en.wikipedia.org/wiki/Behavior_tree">Behaviour Trees</a> (BT) would surely top the charts. Almost every gameplay programmer has used, or at least heard of, Finite State Machines.
 
-Goal-Oriented Action Planing (GOAP, rhymes with dope) is a planning architecture based on <a href="http://web.mit.edu/caelan/www/publications/rss_workshop_2017.pdf">MIT's STRIPS planning</a>. Developed by <a href="http://alumni.media.mit.edu/~jorkin/">Jeff Orkin</a> while he was working at <a href="https://www.lith.com/">Monolith Productions</a>. GOAP was first implemented in <a href="https://en.wikipedia.org/wiki/F.E.A.R.">F.E.A.R.</a>, which back in 2005 was praised for it's intelligent AI and squad behaviour in which agents could seemingly verbally communicate with eachother (although the latter was all <a href="https://alumni.media.mit.edu/~jorkin/gdc2006_orkin_jeff_fear.pdf#page=16">smoke and mirrors</a>).
+Goal-Oriented Action Planing (GOAP, rhymes with dope) is a planning architecture based on <a href="http://web.mit.edu/caelan/www/publications/rss_workshop_2017.pdf">MIT's STRIPS planning</a>. Developed by <a href="http://alumni.media.mit.edu/~jorkin/">Jeff Orkin</a> while he was working at <a href="https://www.lith.com/">Monolith Productions</a>. GOAP was first implemented in <a href="https://en.wikipedia.org/wiki/F.E.A.R.">F.E.A.R.</a>, which back in 2005 was praised for its intelligent AI and squad behaviour in which agents could seemingly verbally communicate with eachother (although the latter was all <a href="https://alumni.media.mit.edu/~jorkin/gdc2006_orkin_jeff_fear.pdf#page=16">smoke and mirrors</a>).
 
 Compared to a traditional FSM where you would need to define every single transition between every single state, which gets tedious and cumbersome real fast as the number of states grow, GOAP's FSM only ever uses three states.
 
@@ -76,10 +76,10 @@ So you get the point, GOAP is a real life saver when dealing with AI that requir
 
 <a name="aad"></a>
 ### Advantages And Disadvantages
-Before diving deeper into GOAP, we must first have it about who GOAP is for and who it's not.
-One of the major advantages of GOAP is it's ease of use, expandability and maintainability.
-Since every action lives on it's own and no transitions need to be defined between them, it's real easy to add more actions even late down the pipeline of development.
-GOAP makes the agent feel more "organic" and less predictable. The last might also be one of the disadvantages, depending on the type of application you're developing. In a fast-paced FPS you probably want the enemies to be predictable to ensure a nice, fast flow. For an agent that will only ever have a few states, GOAP is a bit *overkill*. In that case, I'd be faster to write a little FSM.
+Before diving deeper into GOAP, we must first talk about who GOAP is for and who it's not for.
+One of the major advantages of GOAP is its ease of use, expandability and maintainability.
+Since every action lives on its own and no transitions need to be defined between them, it's real easy to add more actions, even late down the development pipeline.
+GOAP makes the agent feel more "organic" and less predictable. The latter might also be one of its disadvantages, depending on the type of application you're developing. In a fast-paced FPS you probably want the enemies to be predictable to ensure a nice, fast flow of gameplay. For an agent that will only ever have a few states, GOAP is a bit *overkill*. In that case, I'd be faster to write a little FSM.
 
 #### Advantages:
 * Ease Of Use
@@ -89,15 +89,15 @@ GOAP makes the agent feel more "organic" and less predictable. The last might al
 
 #### Disdvantages:
 * Unpredictable
-* Overkill for a small agent
+* Overkill for small agents with few states
 
 <a name="actions"></a>
 ### Actions
 
-An action is a little snippet, a step in a plan to achieve a goal. A few examples of actions in this project are picking up a medkit, moving towards the closest unexplored grid cell, destroying garbage laying on the ground, etc. All actions are encapsulated and **no two actions are ever aware of eachother**. They all have their own variables and methods. Each action also has *effects* and *preconditions* which the planner uses to formulate a valid plan to achieve the given goal.
+An action is a little snippet, a step in a plan to achieve a goal. A few examples of actions in this project are picking up a medkit, moving towards the closest unexplored grid cell, destroying garbage laying on the ground, etc. All actions are encapsulated and **no two actions are ever aware of eachother**. They all have their own bit of memory and methods. Each action also has *effects* and *preconditions* which the planner uses to formulate a valid plan to achieve the given goal.
 <br>
 <br>
-An action in this project has the following constructor, defining the actions *preconditions* and *effects*:
+An action in this project has the following constructor, defining its actions *preconditions* and *effects*:
 ```cpp
 GOAP::Action_GrabMedkit::Action_GrabMedkit()
 	: BaseAction("Grab Medkit", 5)
@@ -107,9 +107,9 @@ GOAP::Action_GrabMedkit::Action_GrabMedkit()
 	SetEffect("medkit_in_inventory", true);
 }
 ```
-All actions are derived from the BaseAction class. The BaseAction constructor gets called in the derived action's constructor to set its name (for debugging purposes) and a preset cost value.
+All actions derive from the BaseAction class. The BaseAction constructor gets called in the derived action's constructor to set its name (for debugging purposes) and a preset cost value.
 
-To give another example, if the agent needs to eliminate a zombie, they must make sure that all *preconditions* to eliminate the zombie are met. These *preconditions* could be that they need to have a weapon equiped and are within shooting range or they have their fists readied and are within melee range. The *effect* of succesfully executing the action could be that the zombie threat is eliminated. But at the moment, they don't have a weapon equiped. They could go look for one in a nearby house and eliminate the zombie with the retrieved weapon. Searching the house has the *effect* of having a weapon equiped. They might just use their fists and move into melee range to eliminate the zombie. How would the planner know which sequence of actions to take when their are multiple different actions to achieve the same goal? This is determined by an action's cost, the planner uses this to find the lowest cost path. Basic actions can have a preset cost value, but better, more dynamic actions, have a procedural cost value.
+To give another example, if the agent needs to eliminate a zombie, they must make sure that all *preconditions* to eliminate the zombie are met. These *preconditions* could be that they need to have a weapon equiped and are within shooting range or they have their fists readied and are within melee range. The *effect* of succesfully executing the action could be that the zombie threat is eliminated. But at the moment, they don't have a weapon equiped. They could go look for one in a nearby house and eliminate the zombie with the retrieved weapon. Searching the house has the *effect* of having a weapon equiped. They might also just use their fists and move into melee range to eliminate the zombie. How would the planner know which sequence of actions to take when there are multiple different actions to achieve the same goal? This is determined by an action's cost, the planner uses this to find the lowest cost path. Basic actions can have a preset cost value, but better, more dynamic actions, have a procedural cost value.
 <br>
 <br>
 `Action_GrabMedkit` described above has following procedural cost method:
@@ -122,15 +122,15 @@ int GOAP::Action_GrabMedkit::GetCost() const
 It's a simple method that calculates the distance between itself and its target (an aquired medkit in this case) and returns that distance as the cost. So the further an item, the higher the cost of `Action_GrabMedkit`.
 <br>
 <br>
-Picture this scenario: the agent is shooting at a horde of zombies and their weapon runs out of ammo. They previously aquired a weapon in a house a few kilometers back, but couldn't carry it at that time since their backpack was full. It would be of great risk to try and run all the way back to grab that weapon as zombies might swarm them. But if they succeed, they are guaranteed to have a weapon equiped. There's also an unlooted house a few hundred meters away. They might just try their luck and search it for a weapon, though no guarantees. In this case, you could give both actions of moving to a previously aquired weapon and searching a new house a procedural cost based on the distance to the agent and the risk factor of searching a new house.
+For a last example, picture this scenario: the agent is shooting at a horde of zombies and their weapon runs out of ammo. They previously aquired a weapon in a house a few kilometers back, but couldn't carry it at that time since their backpack was full. It would be of great risk to try and run all the way back to grab that weapon as zombies might swarm them. But if they succeed, they are guaranteed to have a weapon equiped. There's also an unlooted house a few hundred meters away. They might just try their luck and search it for a weapon, though no guarantees. In this case, you could give both actions of moving to a previously aquired weapon and searching a new house a procedural cost based on the distance to the agent and the risk factor of searching a new house.
 <br>
 <br>
-Besides a procedural cost, an action can also have a procedural validity check. This is used by the <a href="planner">planner</a> before the action's *preconditions* and *effects* are checked to see if the action is able to operate on the world state. Bringing back `Action_GrabMedkit` as an example: the agent might have aquired a medkit and their inventory is not full, so the action's preconditions are met. But the action's `IsValid()` method will check if the pathfinder can find a valid path towards the medkit, if not, the action is not valid. You could, each frame, make the pathfinder try and find a path towards all aquired items and store the result in the world's state. You could then use the action's *preconditions* to check against these results, but you can already tell that this has diminishing returns on performance as the number of aquired items grows.
+Besides a procedural cost, an action can also have a procedural validity check. This is used by the <a href="planner">planner</a> before the action's *preconditions* and *effects* are checked to see if the action is able to operate on the world state. Bringing back `Action_GrabMedkit` as an example: the agent might have aquired a medkit and their inventory is not full, so the action's preconditions are met. The action's `IsValid()` method will check if the pathfinder can find a valid path towards the medkit, if not, the action is not valid. You could, each frame, make the pathfinder try and find a path towards all aquired items and store the result in the world's state. You could then use the action's *preconditions* to check against these results, but you can already tell that this has diminishing returns on performance as the number of aquired items grows.
 
 <a name="states"></a>
 ### World And Goal State
 
-Not to be confused with a FSM's state, world and goal states are a list of (mostly boolean) parameters describing the current and desired state of the world respectively. For this project, a simplified version of the world state looks something like the following:
+Not to be confused with a FSM's state, world and goal states are a list of (in the case of this project) boolean parameters describing the current and desired state of the world respectively. For this project, a simplified version of the world state looks something like the following:
 ```cpp
 {
     {"pistol_in_inventory"  : true},
@@ -155,8 +155,8 @@ public:
     virtual bool IsValid(const WorldState& ws) const override;
 };
 ```
-The goal struct is derived from a WorldState struct, the constructor calls the base struct constructor to initialize its name (used for debugging) and priority.
-Method `IsValid()` is used by GOAP to determine wether the goal should be considered. `Goal_EliminateThreat` has a higher priority than say `Goal_LootHouse`, but if the agent is not in danger, there is no need to try and satisfy `Goal_EliminateThreat` since it's already satisfied.
+The goal struct derives from a WorldState struct, the constructor calls the base struct constructor to initialize its name (used for debugging) and priority.
+Method `IsValid()` is used by GOAP to determine wether the goal should be considered. `Goal_EliminateThreat` has a higher priority than say `Goal_LootHouse`, but if the agent is not in danger, there is no need to try and satisfy `Goal_EliminateThreat` since it's already satisfied by the current world state.
 
 The `IsValid()` method for `Goal_EliminateThreat` is shown below:
 ```cpp
@@ -171,7 +171,7 @@ The parameter `const WorldState& ws` is the current state of the world. The meth
 <a name="planner"></a>
 ### Planner
 
-The planner is the GOAP's brain. It chews on all available actions, the current world state and the goal world state to spit out a sequence of actions. The planner uses one of the most popular pathfinding algorithms: the <a href="https://en.wikipedia.org/wiki/A*_search_algorithm">A* search algorithm</a>.
+The planner are GOAP's brains. It chews on all available actions, the current world state and the goal world state to spit out a sequence of actions. The planner uses one of the most popular pathfinding algorithms: the <a href="https://en.wikipedia.org/wiki/A*_search_algorithm">A* search algorithm</a>.
 It can not only be used to find the shortest and lowest cost path to a target, it can be used on any graph or list. The algorithm uses the current world state as its "starting position" and finds a "path" towards the goal world state. Below is an example of how the planner tries and find the cheapest path towards its goal:
 <br>
 <br>
