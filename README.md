@@ -24,15 +24,15 @@
     <li>
       <a href="#what-is-goap">What Is GOAP?</a>
       <ul>
-				<li><a href="#aad">Advantages And Disadvantages</a></li>
-				<li><a href="#actions">Actions</a></li>
+  		<li><a href="#aad">Advantages And Disadvantages</a></li>
+		<li><a href="#actions">Actions</a></li>
         <li><a href="#states">WorldState</a></li>
         <li><a href="#planner">Planner</a></li>
       </ul>
     </li>
-    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
     <li><a href="#license">License</a></li>
-		<li><a href="#sources">Sources</a></li>
+	<li><a href="#sources">Sources</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
@@ -311,7 +311,7 @@ And that's it! the planner repeats these steps untill the open list contains no 
 
 <!-- Conclusion -->
 ## Conclusion
-Now that I know how GOAP works and how it can be applied to applications and games, I don't see a reason why I'd ever use a FSM again for big and complex projects that don't require predicatble agents. There is still a lot to be approved upon in this project. [Fuzzy Logic](https://en.wikipedia.org/wiki/Fuzzy_logic) could be used to determine which goal is to be set as the goal to achieve.
+Now that I know how GOAP works and how it can be applied to applications and games, I don't see a reason why I'd ever use a FSM again for big and complex projects that don't require predicatble agents. There is still a lot to be improved upon in this project. [Fuzzy Logic](https://en.wikipedia.org/wiki/Fuzzy_logic) could be used to determine which goal is to be set as the goal to achieve. Fuzzy Logic is an extend of [Boolean Logic](https://en.wikipedia.org/wiki/Boolean_algebra) of sorts. Where Boolean Logic only has two values (false and true), Fuzzy Logic can have multiple values. Something can for example be "one third true" or "three fifth false". If you were to apply Fuzzy Logic to this project, you could for example state what the agent needs to do at certain health values. If the agent is "moderately hit" (health at 80%) and "very hungry" (energy at 20%), they could decide to first satisfy their hunger and then go check for a medkit to heal their wounds. This is just a vague (ha, get it?) example of how Fuzzy Logic could be incorperated into this project.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
