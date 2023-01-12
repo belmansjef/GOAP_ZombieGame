@@ -119,8 +119,6 @@ struct HouseInfo_Extended : HouseInfo
 {
 	int itemsLootedSinceLastVisit;
 	int itemsLootedReactivation;
-	float TimeSinceLastVisit;
-	float ReactivationTime;
 	bool AreaSearched;
 	Corner NextCornerAreaSearch;
 	Corner NextCornerHouseSearch;
@@ -182,7 +180,7 @@ struct HouseInfo_Extended : HouseInfo
 
 	}
 
-	bool HasRecentlyVisited() const { return TimeSinceLastVisit < ReactivationTime || itemsLootedSinceLastVisit < itemsLootedReactivation; }
+	bool HasRecentlyVisited() const { return itemsLootedSinceLastVisit < itemsLootedReactivation; }
 	bool operator==(const HouseInfo_Extended& rhs) { return Location == rhs.Location; }
 	bool operator==(const HouseInfo& rhs) { return Location == rhs.Location; }
 };

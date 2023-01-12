@@ -87,11 +87,11 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
 
     while (m_OpenList.size() > 0)
     {
-        // Look for Node with the lowest-F-score on the open list. Switch it to closed,
-        // and hang onto it -- this is our latest node.
+        // Get the node with the lowest f-cost, put it on the closed list
+        // and get a reference to it
         Node& current(PopAndClose());
 
-        // Is our current state the goal state? If so, we've found a path, yay.
+        // Does the current state meet the goal's state?
         if (current.ws.MeetsGoal(goal))
         {
             std::vector<BaseAction*> plan;
@@ -148,8 +148,7 @@ std::vector<GOAP::BaseAction*> GOAP::Planner::FormulatePlan(const WorldState& st
                         potential_outcome_node->h = CalculateHeuristic(outcome, goal);
                         potential_outcome_node->action = potential_action;
 
-                        // resort open list to account for the new F
-                        // sorting likely invalidates the potential_outcome_node iterator, but we don't need it anymore
+                        // resort open list to account for the new f-cost
                         std::sort(begin(m_OpenList), end(m_OpenList));
                     }
                 }

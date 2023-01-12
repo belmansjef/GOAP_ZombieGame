@@ -16,6 +16,10 @@ GOAP::BaseAction::BaseAction(const std::string& _name, const int _cost)
 
 GOAP::BaseAction::~BaseAction()
 {
+    SAFE_DELETE(m_pTarget);
+    SAFE_DELETE(m_pWorldState);
+    SAFE_DELETE(m_pEntities);
+    SAFE_DELETE(m_pInterface);
 }
 
 /// <summary>

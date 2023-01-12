@@ -12,6 +12,7 @@ namespace GOAP
 	{
 	public:
 		WorldState(const std::string& _name = "", int _priority = 100);
+		~WorldState() = default;
 
 		void SetVariable(const std::string& var_id, const bool value);
 		bool GetVariable(const std::string& var_id) const;
@@ -74,31 +75,11 @@ namespace GOAP
 		virtual bool IsValid(const WorldState& ws) const override;
 	};
 
-	struct Goal_LootFood final : WorldState
-	{
-	public:
-		Goal_LootFood() : WorldState("Loot Food", 150)
-		{
-			SetVariable("food_grabbed", true);
-		};
-		virtual bool IsValid(const WorldState& ws) const override;
-	};
-
-
-	struct Goal_LootMedkit final : WorldState
-	{
-	public:
-		Goal_LootMedkit() : WorldState("Loot Medkit", 140)
-		{
-			SetVariable("medkit_grabbed", true);
-		};
-		virtual bool IsValid(const WorldState& ws) const override;
-	};
 
 	struct Goal_ReplenishEnergy final : WorldState
 	{
 	public:
-		Goal_ReplenishEnergy() : WorldState("Replenish Energy", 130)
+		Goal_ReplenishEnergy() : WorldState("Replenish Energy", 150)
 		{
 			SetVariable("low_energy", false);
 		};
@@ -108,9 +89,29 @@ namespace GOAP
 	struct Goal_ReplenishHealth final : WorldState
 	{
 	public:
-		Goal_ReplenishHealth() : WorldState("Replenish Health", 120)
+		Goal_ReplenishHealth() : WorldState("Replenish Health", 140)
 		{
 			SetVariable("low_health", false);
+		};
+		virtual bool IsValid(const WorldState& ws) const override;
+	};
+
+	struct Goal_LootFood final : WorldState
+	{
+	public:
+		Goal_LootFood() : WorldState("Loot Food", 130)
+		{
+			SetVariable("food_grabbed", true);
+		};
+		virtual bool IsValid(const WorldState& ws) const override;
+	};
+
+	struct Goal_LootMedkit final : WorldState
+	{
+	public:
+		Goal_LootMedkit() : WorldState("Loot Medkit", 120)
+		{
+			SetVariable("medkit_grabbed", true);
 		};
 		virtual bool IsValid(const WorldState& ws) const override;
 	};
@@ -120,7 +121,7 @@ namespace GOAP
 	public:
 		Goal_LootPistol() : WorldState("Loot Pistol", 100)
 		{
-			SetVariable("pistol_in_inventory", true);
+			SetVariable("pistol_grabbed", true);
 		};
 		virtual bool IsValid(const WorldState& ws) const override;
 	};
@@ -130,17 +131,7 @@ namespace GOAP
 	public:
 		Goal_LootShotgun() : WorldState("Loot Shotgun", 90)
 		{
-			SetVariable("shotgun_in_inventory", true);
-		};
-		virtual bool IsValid(const WorldState& ws) const override;
-	};
-
-	struct Goal_ClearGround final : WorldState
-	{
-	public:
-		Goal_ClearGround() : WorldState("Clear Ground", 70)
-		{
-			SetVariable("ground_cleared", true);
+			SetVariable("shotgun_grabbed", true);
 		};
 		virtual bool IsValid(const WorldState& ws) const override;
 	};

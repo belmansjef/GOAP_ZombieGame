@@ -7,6 +7,7 @@ namespace GOAP
 	{
 	public:
 		Action_SearchEnemy();
+		~Action_SearchEnemy() { SAFE_DELETE(m_pSteering); }
 
 		virtual bool IsDone() override;
 		virtual void Reset() override;

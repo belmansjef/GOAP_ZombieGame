@@ -11,8 +11,6 @@ GOAP::Action_GrabFood::Action_GrabFood()
 	, m_SecondInventorySlot(4U)
 {
 	SetPrecondition("food_aquired", true);
-	SetPrecondition("food_inventory_full", false);
-	SetEffect("food_inventory_full", true);
 	SetEffect("food_in_inventory", true);
 	SetEffect("food_grabbed", true);
 }
@@ -49,22 +47,56 @@ bool GOAP::Action_GrabFood::IsValid(Elite::Blackboard* pBlackboard)
 
 bool GOAP::Action_GrabFood::Execute(Elite::Blackboard* pBlackboard)
 {
-	ItemInfo item;
-	if (m_pInterface->Item_Grab(*m_pTarget, item))
+	ItemInfo newFood;
+	if (m_pInterface->Item_GetInfo(*m_pTarget, newFood))
 	{
+		if (newFood.Type != eItemType::FOOD) return false;
 		// If there's no food in the inventory, place it in the first food slot
 		if (!m_pWorldState->GetVariable("food_in_inventory"))
 		{
-			if (item.Type != eItemType::FOOD) return false;
-			m_pInterface->Inventory_AddItem(m_FirstInventorySlot, item);
+			m_pInterface->Item_Grab(*m_pTarget, newFood);
+			m_pInterface->Inventory_AddItem(m_FirstInventorySlot, newFood);
 			m_pWorldState->SetVariable("food_in_inventory", true);
 		}
 		// If there is food in the first slot, put it in the second
 		else
 		{
-			if (item.Type != eItemType::FOOD) return false;
-			m_pInterface->Inventory_AddItem(m_SecondInventorySlot, item);
-			m_pWorldState->SetVariable("food_inventory_full", true);
+			// Food inventory is full, check if the new food is better
+			if (m_pWorldState->GetVariable("food_inventory_full"))
+			{
+				ItemInfo equipedFood;
+				m_pInterface->Inventory_GetItem(m_FirstInventorySlot, equipedFood);
+				if (m_pInterface->Food_GetEnergy(newFood) >= m_pInterface->Food_GetEnergy(equipedFood))
+				{
+					m_pInterface->Inventory_UseItem(m_FirstInventorySlot);
+					m_pInterface->Inventory_RemoveItem(m_FirstInventorySlot);
+					m_pInterface->Item_Grab(*m_pTarget, newFood);
+					m_pInterface->Inventory_AddItem(m_FirstInventorySlot, newFood);
+				}
+				else
+				{
+					m_pInterface->Inventory_GetItem(m_SecondInventorySlot, equipedFood);
+					if (m_pInterface->Food_GetEnergy(newFood) >= m_pInterface->Food_GetEnergy(equipedFood))
+					{
+						m_pInterface->Inventory_UseItem(m_SecondInventorySlot);
+						m_pInterface->Inventory_RemoveItem(m_SecondInventorySlot);
+						m_pInterface->Item_Grab(*m_pTarget, newFood);
+						m_pInterface->Inventory_AddItem(m_SecondInventorySlot, newFood);
+					}
+					else
+					{
+						std::cout << "[Grab Food]: Better food in inventory, destroying ground item!" << std::endl;
+						m_pInterface->Item_Destroy(*m_pTarget);
+					}
+				}
+			}
+			// Food inventory is not full yet, add new food to inventory
+			else
+			{
+				m_pInterface->Item_Grab(*m_pTarget, newFood);
+				m_pInterface->Inventory_AddItem(m_SecondInventorySlot, newFood);
+				m_pWorldState->SetVariable("food_inventory_full", true);
+			}
 		}
 
 		// Remove item from general entity list

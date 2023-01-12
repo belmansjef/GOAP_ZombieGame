@@ -8,6 +8,7 @@ namespace GOAP
 	{
 	public:
 		Action_SearchArea();
+		~Action_SearchArea() { SAFE_DELETE(m_pSteering); SAFE_DELETE(m_pHouse); SAFE_DELETE(m_pHouses); }
 
 		virtual bool IsDone() override;
 		virtual void Reset() override;

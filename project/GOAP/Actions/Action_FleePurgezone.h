@@ -7,6 +7,8 @@ namespace GOAP
 	{
 	public:
 		Action_FleePurgezone();
+		~Action_FleePurgezone() { SAFE_DELETE(m_pSteering); }
+
 
 		virtual bool IsDone() override;
 		virtual void Reset() override;

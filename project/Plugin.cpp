@@ -85,9 +85,6 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_pActions.push_back(new GOAP::Action_GrabFood);
 	m_pActions.push_back(new GOAP::Action_GrabMedkit);
 	m_pActions.push_back(new GOAP::Action_DestroyGarbage);
-	m_pActions.push_back(new GOAP::Action_ClearPistol);
-	m_pActions.push_back(new GOAP::Action_ClearShotgun);
-	m_pActions.push_back(new GOAP::Action_ClearMedkit);
 	m_pActions.push_back(new GOAP::Action_LootHouse);
 	m_pActions.push_back(new GOAP::Action_SearchArea);
 	m_pActions.push_back(new GOAP::Action_GotoClosestCell);
@@ -97,15 +94,14 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_WorldState.SetVariable("in_danger",			false);
 	m_WorldState.SetVariable("enemy_aquired",		false);
 	m_WorldState.SetVariable("pistol_aquired",		false);
+	m_WorldState.SetVariable("pistol_grabbed",		false);
 	m_WorldState.SetVariable("pistol_in_inventory", false);
-	m_WorldState.SetVariable("pistol_limit_reached",false);
 	m_WorldState.SetVariable("shotgun_aquired",		false);
+	m_WorldState.SetVariable("shotgun_grabbed",		false);
 	m_WorldState.SetVariable("shotgun_in_inventory",false);
-	m_WorldState.SetVariable("shotgun_limit_reached",false);
 	m_WorldState.SetVariable("medkit_aquired",		false);
 	m_WorldState.SetVariable("medkit_grabbed",		false);
 	m_WorldState.SetVariable("medkit_in_inventory", false);
-	m_WorldState.SetVariable("medkit_limit_reached",false);
 	m_WorldState.SetVariable("low_health",			false);
 	m_WorldState.SetVariable("health_full",			false);
 	m_WorldState.SetVariable("food_aquired",		false);
@@ -114,7 +110,6 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_WorldState.SetVariable("food_inventory_full", false);
 	m_WorldState.SetVariable("use_first_food",		true);
 	m_WorldState.SetVariable("low_energy",			false);
-	m_WorldState.SetVariable("energy_full",			false);
 	m_WorldState.SetVariable("house_aquired",		false);
 	m_WorldState.SetVariable("all_houses_looted",	true);
 	m_WorldState.SetVariable("item_looted",			false);
@@ -135,7 +130,6 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_pGoals.push_back(new GOAP::Goal_LootFood);
 	m_pGoals.push_back(new GOAP::Goal_LootMedkit);
 	m_pGoals.push_back(new GOAP::Goal_ClearGarbage);
-	m_pGoals.push_back(new GOAP::Goal_ClearGround);
 	m_pGoals.push_back(new GOAP::Goal_LootHouse);
 	m_pGoals.push_back(new GOAP::Goal_SearchArea);
 	m_pGoals.push_back(new GOAP::Goal_ExploreWorld);
@@ -143,11 +137,11 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	// FSM States
 	m_IdleState = GOAP::FSMState([&](GOAP::FSM* pFSM, Elite::Blackboard* pBlackboard)
 		{
-			m_CurrentGoal = GetHighestPriorityGoal();
-			m_pPlan = m_ASPlanner.FormulatePlan(m_WorldState, *m_CurrentGoal, m_pActions, m_pBlackboard);
+			m_pCurrentGoal = GetHighestPriorityGoal();
+			m_pPlan = m_ASPlanner.FormulatePlan(m_WorldState, *m_pCurrentGoal, m_pActions, m_pBlackboard);
 			if (!m_pPlan.empty())
 			{
-				std::cout << "found a plan for goal [" << m_CurrentGoal->name << "]: ";
+				std::cout << "found a plan for goal [" << m_pCurrentGoal->name << "]: ";
 				for (auto& it = m_pPlan.rbegin(); it != m_pPlan.rend(); ++it)
 				{
 					if (it != m_pPlan.rbegin())
@@ -162,7 +156,7 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 			}
 			else
 			{
-				std::cout << "Couldn't find a plan for goal [" << m_CurrentGoal->name << "]" << std::endl;
+				std::cout << "Couldn't find a plan for goal [" << m_pCurrentGoal->name << "]" << std::endl;
 				pFSM->PopState();
 				pFSM->PushState(m_IdleState);
 			}
@@ -229,7 +223,16 @@ void Plugin::DllInit()
 //Called only once
 void Plugin::DllShutdown()
 {
-	//Called wheb the plugin gets unloaded
+	//Called when the plugin gets unloaded
+	SAFE_DELETE(m_pAquiredEntities);
+	SAFE_DELETE(m_pAquiredHouses);
+	SAFE_DELETE(m_pAquiredPistols);
+	SAFE_DELETE(m_pAquiredShotguns);
+	SAFE_DELETE(m_pAquiredMedkits);
+	SAFE_DELETE(m_pAquiredFood);
+	SAFE_DELETE(m_pAquiredGarbage);
+	SAFE_DELETE(m_pCurrentGoal);
+	SAFE_DELETE(m_pBlackboard);
 }
 
 //Called only once, during initialization
@@ -237,7 +240,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 {
 	params.AutoFollowCam = true; //Automatically follow the AI? (Default = true)
 	params.RenderUI = true; //Render the IMGUI Panel? (Default = true)
-	params.SpawnEnemies = true; //Do you want to spawn enemies? (Default = true)
+	params.SpawnEnemies = false; //Do you want to spawn enemies? (Default = true)
 	params.EnemyCount = 20; //How many enemies? (Default = 20)
 	params.GodMode = true; //GodMode > You can't die, can be useful to inspect certain behaviors (Default = false)
 	params.LevelFile = "GameLevel.gppl";
@@ -250,7 +253,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.PrintDebugMessages = false;
 	params.ShowDebugItemNames = true;
 	params.SpawnZombieOnRightClick = true;
-	params.Seed = 3;
+	params.Seed = 1;
 }
 
 //Only Active in DEBUG Mode
@@ -323,29 +326,35 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 	m_WorldState.SetVariable("use_first_food", true);
 	if (m_WorldState.GetVariable("food_in_inventory"))
 	{
-		ItemInfo item;
+		ItemInfo food;
 		int energy;
 		if (m_WorldState.GetVariable("food_inventory_full"))
 		{
-			m_pInterface->Inventory_GetItem(4U, item);
-			energy = m_pInterface->Food_GetEnergy(item);
+			m_pInterface->Inventory_GetItem(4U, food);
+			energy = m_pInterface->Food_GetEnergy(food);
 		}
 		else
 		{
-			m_pInterface->Inventory_GetItem(3U, item);
-			energy = m_pInterface->Food_GetEnergy(item);
+			m_pInterface->Inventory_GetItem(3U, food);
+			energy = m_pInterface->Food_GetEnergy(food);
 		}
 		m_WorldState.SetVariable("low_energy", m_pInterface->Agent_GetInfo().Energy <= 10.f - energy);
 	}
-	m_WorldState.SetVariable("energy_full",		m_pInterface->Agent_GetInfo().Energy >= 10.f);
-	m_WorldState.SetVariable("low_health",		m_pInterface->Agent_GetInfo().Health <= 9.f);
-	m_WorldState.SetVariable("health_full",		m_pInterface->Agent_GetInfo().Health >= 10.f);
+
+	m_WorldState.SetVariable("low_health",		m_pInterface->Agent_GetInfo().Health <= 8.f);
+	if (m_WorldState.GetVariable("medkit_in_inventory"))
+	{
+		ItemInfo medkit;
+		m_pInterface->Inventory_GetItem(2U, medkit);
+		int health{m_pInterface->Medkit_GetHealth(medkit)};
+		m_WorldState.SetVariable("low_health", m_pInterface->Agent_GetInfo().Health <= 10.f - health);
+	}
 	m_WorldState.SetVariable("in_danger",		m_WorldState.GetVariable("in_danger") || m_pInterface->Agent_GetInfo().WasBitten || !m_EnemiesInFOV.empty());
 	m_WorldState.SetVariable("enemy_aquired",	!m_EnemiesInFOV.empty());
 
 	m_FSM.Update(m_pBlackboard);
 	GOAP::WorldState goal{*GetHighestPriorityGoal()};
-	if (*m_CurrentGoal != goal)
+	if (*m_pCurrentGoal != goal)
 	{
 		m_FSM.ClearStack();
 		m_FSM.PushState(m_IdleState);
@@ -420,8 +429,7 @@ void Plugin::GetNewHousesInFOV()
 				m_pAquiredHouses->back().AreaSearched = false;
 				m_pAquiredHouses->back().NextCornerAreaSearch = Corner::TopRight;
 				m_pAquiredHouses->back().NextCornerHouseSearch = Corner::BottomLeft;
-				m_pAquiredHouses->back().itemsLootedSinceLastVisit = m_pAquiredHouses->back().itemsLootedReactivation = 30;
-				m_pAquiredHouses->back().TimeSinceLastVisit = m_pAquiredHouses->back().ReactivationTime = 900.f;
+				m_pAquiredHouses->back().itemsLootedSinceLastVisit = m_pAquiredHouses->back().itemsLootedReactivation = 40;
 			}
 			continue;
 		}
@@ -515,11 +523,8 @@ void Plugin::GetEntitiesInFOV()
 		break;
 	}
 	m_WorldState.SetVariable("pistol_aquired",	!m_pAquiredPistols->empty());
-	m_WorldState.SetVariable("pistol_limit_reached", m_pAquiredPistols->size() >= m_GroundItemLimit);
 	m_WorldState.SetVariable("shotgun_aquired", !m_pAquiredShotguns->empty());
-	m_WorldState.SetVariable("shotgun_limit_reached", m_pAquiredShotguns->size() >= m_GroundItemLimit - 3);
 	m_WorldState.SetVariable("medkit_aquired",	!m_pAquiredMedkits->empty());
-	m_WorldState.SetVariable("medkit_limit_reached", m_pAquiredMedkits->size() >= m_GroundItemLimit);
 	m_WorldState.SetVariable("food_aquired",	!m_pAquiredFood->empty());
 	m_WorldState.SetVariable("garbage_aquired", !m_pAquiredGarbage->empty());
 }
@@ -663,9 +668,9 @@ bool Plugin::CheckForPurgeZone()
 			{
 				m_pInterface->PurgeZone_GetInfo(ei, m_PurgeZoneInFOV);
 				const Elite::Vector2 dir_vector = m_pInterface->Agent_GetInfo().Position - m_PurgeZoneInFOV.Center;
-				if (dir_vector.MagnitudeSquared() <= (m_PurgeZoneInFOV.Radius * m_PurgeZoneInFOV.Radius) + 250.f)
+				if (dir_vector.MagnitudeSquared() <= (m_PurgeZoneInFOV.Radius * m_PurgeZoneInFOV.Radius) + 325.f)
 				{
-					m_Target = m_PurgeZoneInFOV.Center + dir_vector.GetNormalized() * (m_PurgeZoneInFOV.Radius * 1.15f);
+					m_Target = m_PurgeZoneInFOV.Center + dir_vector.GetNormalized() * (m_PurgeZoneInFOV.Radius * 1.35f);
 					m_WorldState.SetVariable("inside_purgezone", true);
 					return true;
 				}
@@ -695,32 +700,22 @@ void Plugin::SortEntitiesByDistance(std::vector<T>* entities)
 
 void Plugin::UpdateHouseInfo()
 {
-	if (m_pAquiredHouses->empty()) return;
-
 	m_WorldState.SetVariable("all_houses_looted", true);
 	m_WorldState.SetVariable("all_areas_searched", true);
+	if (m_pAquiredHouses->empty()) return;
+
 	for (auto& house : *m_pAquiredHouses)
 	{
+		// Reduce cooldown time for visiting houses when we've spotted almost all of them
 		if (m_pAquiredHouses->size() >= 19)
-		{
-			house.ReactivationTime = 240.f;
-			house.itemsLootedReactivation = 24;
-		}
-		house.TimeSinceLastVisit += m_FrameTime;
+			house.itemsLootedReactivation = 12;
 
 		if (m_WorldState.GetVariable("item_looted"))
-		{
-			if (house.TimeSinceLastVisit <= 1.f)
-			{
-				house.itemsLootedSinceLastVisit = 0;
-			}
-
 			house.itemsLootedSinceLastVisit++;
-			std::cout << "House at: " << house.Location << ", items since visited: " << house.itemsLootedSinceLastVisit << std::endl;
-		}
 			
 		if (!house.HasRecentlyVisited())
 			m_WorldState.SetVariable("all_houses_looted", false);
+
 		if(!house.AreaSearched)
 			m_WorldState.SetVariable("all_areas_searched", false);
 	}

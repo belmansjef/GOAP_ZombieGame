@@ -29,7 +29,6 @@ bool GOAP::Action_LootHouse::IsDone()
 {
 	if (m_HouseLooted)
 	{
-		m_pHouse->TimeSinceLastVisit = 0.f;
 		m_pHouse->itemsLootedSinceLastVisit = 0;
 		m_pHouse->NextCornerHouseSearch = Corner::BottomLeft;
 		m_pSteering->LinearVelocity = Elite::ZeroVector2;

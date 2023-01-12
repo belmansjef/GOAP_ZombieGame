@@ -47,7 +47,6 @@ private:
 	float m_AngSpeed = 0.f; //Demo purpose
 
 	// World Info
-	const size_t m_GroundItemLimit{ 4 };
 	Elite::Vector2 m_WorldCenter;
 	Elite::Vector2 m_WorldDimensions;
 	std::vector<Elite::Vector2> m_WorldBoundaries;
@@ -72,7 +71,7 @@ private:
 	std::vector<GOAP::BaseAction*> m_pPlan;
 	std::vector<GOAP::BaseAction*> m_pActions;
 	std::vector<GOAP::WorldState*> m_pGoals;
-	GOAP::WorldState* m_CurrentGoal;
+	GOAP::WorldState* m_pCurrentGoal;
 	GOAP::Planner m_ASPlanner;
 
 	GOAP::FSM m_FSM;

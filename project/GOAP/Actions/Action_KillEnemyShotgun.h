@@ -7,6 +7,7 @@ namespace GOAP
 	{
 	public:
 		Action_KillEnemyShotgun();
+		~Action_KillEnemyShotgun() { SAFE_DELETE(m_pSteering); }
 
 		virtual bool IsDone() override;
 		virtual void Reset() override;
