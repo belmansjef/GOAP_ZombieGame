@@ -9,8 +9,9 @@
 
   <p align="center">
     Making an AI agent survive a virtual wasteland using Goal-Oriented Action Planning.
-    <br />
-    <a href="https://github.com/belmansjef/GOAP_ZombieGame"><strong>View demo »</strong></a>
+    <br/>
+    <br>
+    <img src="https://github.com/belmansjef/GOAP_ZombieGame/blob/main/README/GOAP_Demo.gif">
   </p>
 </div>
 
@@ -77,9 +78,9 @@ So you get the point, GOAP is a real life saver when dealing with AI that requir
 <a name="aad"></a>
 ### Advantages And Disadvantages
 Before diving deeper into GOAP, we must first talk about who GOAP is for and who it's not for.
-One of the major advantages of GOAP is its ease of use, expandability and maintainability.
+One of the major advantages of GOAP is its **ease of use, expandability and maintainability**.
 Since every action lives on its own and no transitions need to be defined between them, it's real easy to add more actions, even late down the development pipeline.
-GOAP makes the agent feel more "organic" and less predictable. The latter might also be one of its disadvantages, depending on the type of application you're developing. In a fast-paced FPS you probably want the enemies to be predictable to ensure a nice, fast flow of gameplay. For an agent that will only ever have a few states, GOAP is a bit *overkill*. In that case, I'd be faster to write a little FSM.
+GOAP makes the **agent feel** more **organic** and **less predictable**. The **latter** might also be one of its **disadvantages**, depending on the type of application you're developing. In a fast-paced FPS you probably want the enemies to be predictable to ensure a nice, fast flow of gameplay. For an agent that will only ever have a **few states**, **GOAP** is a bit **overkill**. In **that case**, I'd be faster to write a **little FSM**.
 
 #### Advantages:
 * Ease Of Use
